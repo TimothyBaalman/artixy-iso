@@ -13,8 +13,8 @@
 # their OCR text is printed.
 #
 # Steps checked:
-#   1. GRUB menu shows; Enter boots the first entry
-#   2. a login prompt appears on tty1
+#   1. GRUB menu shows and boots the live entry (default, 5s timeout)
+#   2. the getty on tty1 shows the Artixy login banner
 #   3. logging in as artix starts the installer ("Artixy" banner)
 #   4. from a shell, the live runit services are up
 
@@ -118,7 +118,7 @@ qemu-system-x86_64 "${args[@]}" || exit 1
 trap 'kill "$(cat "$pidfile")" 2>/dev/null' EXIT
 
 if [[ $fw != serial ]]; then
-    # The live menu never times out. OCR of the themed menu is best effort,
+    # Enter skips the 5s timeout. OCR of the themed menu is best effort,
     # so a miss here is only a note; the login check decides.
     if ! wait_for 'artix|boot|cd|dvd' grub 60; then
         failed=$((failed - 1))
@@ -127,7 +127,9 @@ if [[ $fw != serial ]]; then
     monitor "sendkey ret"
 fi
 
-if wait_for 'login' login 240; then
+# Boot messages share tty1 with the getty and can garble "login:" (OCR
+# read "logit"), so also accept the /etc/issue banner the getty prints.
+if wait_for 'login:|log in on tty' login 240; then
     type_line artix
     sleep 2
     type_line artix
