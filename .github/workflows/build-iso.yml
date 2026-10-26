@@ -1,0 +1,56 @@
+name: Build ISO
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "iso-profiles/**"
+      - "tools/**"
+      - "build.sh"
+      - ".github/workflows/build-iso.yml"
+  push:
+    branches: [main]
+    paths:
+      - "iso-profiles/**"
+      - "build.sh"
+
+jobs:
+  packages:
+    name: Check package names
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PyYAML
+        run: pip install pyyaml
+      - name: Check every package is in a current Artix repo
+        run: tools/check-packages.sh artixy
+
+  iso:
+    name: Build artixy (runit)
+    needs: packages
+    runs-on: ubuntu-latest
+    container:
+      image: artixlinux/artixlinux:latest
+      # buildiso mounts overlayfs and runs chroots. The chroots must live on
+      # the runner's ext4 disk: the container's own overlay root cannot be an
+      # overlayfs upperdir.
+      options: --privileged -v /mnt/artools:/var/lib/artools
+    steps:
+      - name: Install artools
+        run: |
+          pacman-key --init
+          pacman-key --populate artix
+          pacman -Syu --noconfirm --needed artools-iso git
+      - uses: actions/checkout@v4
+      - name: Build ISO
+        # container jobs get HOME=/github/home, so pin the workspace
+        env:
+          WORKSPACE_DIR: /root/artools-workspace
+        run: ./build.sh
+      - name: Upload ISO
+        uses: actions/upload-artifact@v4
+        with:
+          name: artixy-iso
+          path: /root/artools-workspace/iso/artixy/*.iso
+          retention-days: 7
+          compression-level: 0

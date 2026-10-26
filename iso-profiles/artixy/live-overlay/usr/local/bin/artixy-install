@@ -1,0 +1,22 @@
+#!/bin/bash
+# Artixy installer entry point.
+#
+# Placeholder until plan step 3 (the gum installer) lands. It shows that the
+# live ISO boots into the installer and gives a way out to a shell.
+
+set -u
+
+. /usr/local/lib/artixy/service.sh
+
+gum style --border rounded --padding "1 3" --margin 1 \
+    "Artixy" "Artix Linux + runit" "" \
+    "The installer is not written yet." \
+    "Network: nmtui    Partitioning: cfdisk / parted    Base install: basestrap"
+
+choice=$(gum choose "Open a shell" "Set up Wi-Fi (nmtui)" "Power off" "Reboot") || choice="Open a shell"
+
+case $choice in
+    "Set up Wi-Fi (nmtui)") nmtui; exec "$0" ;;
+    "Power off") sudo poweroff ;;
+    "Reboot") sudo reboot ;;
+esac
