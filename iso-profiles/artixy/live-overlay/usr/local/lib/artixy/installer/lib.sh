@@ -101,5 +101,7 @@ part() {
 list_disks() {
     local live
     live=$(findmnt -no SOURCE /run/artix/bootmnt 2>/dev/null | xargs -r lsblk -no PKNAME 2>/dev/null | head -1)
-    lsblk -dpno NAME,TYPE,RO | awk -v live="/dev/$live" '$2 == "disk" && $3 == 0 && $1 != live && $1 !~ /zram|loop/ { print $1 }'
+    # floppies (fd0) also show up as type disk
+    lsblk -dbpno NAME,TYPE,RO,SIZE | awk -v live="/dev/$live" \
+        '$2 == "disk" && $3 == 0 && $4 > 0 && $1 != live && $1 !~ /zram|loop|\/fd[0-9]/ { print $1 }'
 }

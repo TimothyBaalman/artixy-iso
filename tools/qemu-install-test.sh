@@ -81,7 +81,7 @@ sleep 0.5
 monitor "sendkey ret"
 sleep 3
 
-type_line "artixy-install --auto username=$user password=$pass desktop=$desktop encrypt=$encrypt reboot=poweroff log=/dev/ttyS0"
+type_line "artixy-install --auto disk=/dev/vda username=$user password=$pass desktop=$desktop encrypt=$encrypt reboot=poweroff log=/dev/ttyS0"
 sleep 30
 shot install-started
 
