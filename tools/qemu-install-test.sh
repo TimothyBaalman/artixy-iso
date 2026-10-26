@@ -144,7 +144,7 @@ fi
 type_line "clear; pacman -Q $pkgs && echo PKGS-OK; pacman -Qq | grep -q xlibre && echo XLIBRE-OK"
 sleep 3
 check 'PKGS-OK' packages
-[[ $desktop == i3 ]] && check 'XLIBRE-OK' xlibre
+[[ $desktop == i3 ]] && check 'XL.?IBRE-OK' xlibre  # OCR has read "XL IBRE"
 type_line "clear; sudo sv status /run/runit/service/*"
 sleep 2
 type_line "$pass"
