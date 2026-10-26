@@ -9,8 +9,8 @@ integration to set up (none, some, or full).
 
 | Step | What | State |
 |---|---|---|
-| 1 | Package list + artools buildiso profile | this repo |
-| 2 | Bootable live ISO tested in QEMU | next |
+| 1 | Package list + artools buildiso profile | done |
+| 2 | Bootable live ISO tested in QEMU | CI boot test (BIOS, UEFI, serial) |
 | 3 | gum installer | `artixy-install` is a placeholder |
 | 4 | AI tiers | planned |
 
@@ -24,6 +24,7 @@ iso-profiles/
   artixy/live-overlay/      live-only files: tty1 installer autostart, installer,
                             runit service helper, XLibre repo + signing key
 tools/check-packages.sh     checks every package name against the Artix repos
+tools/qemu-test.sh          boots the ISO in QEMU, logs in and checks it by OCR
 build.sh                    runs buildiso with this repo as the profile source
 ```
 
@@ -58,6 +59,18 @@ qemu-system-x86_64 -enable-kvm -m 4G -cdrom ~/artools-workspace/iso/artixy/artix
 ```
 
 Log in as `artix` / `artix` on tty1 and the installer starts.
+
+The GRUB menu boots the live system after 5 seconds. (Stock Artix live
+menus wait forever and default to the keyboard-layout entry; the profile
+overrides `kernels.cfg` and `variable.cfg` in `live-overlay/usr/share/grub/cfg/`.)
+
+`tools/qemu-test.sh <iso> [bios|uefi|serial]` tests this unattended: it boots
+through GRUB, waits for the login prompt, logs in, checks the installer
+banner, then opens a shell and checks that the runit services are up. The
+`serial` mode skips GRUB and prints the full kernel and runit boot log.
+Screenshots go to `qemu-out/` and their OCR text is printed. It needs `qemu`,
+`socat`, `tesseract` and `netpbm` (plus OVMF for UEFI, `bsdtar` for serial).
+CI runs all three modes after every build.
 
 ## Notes
 

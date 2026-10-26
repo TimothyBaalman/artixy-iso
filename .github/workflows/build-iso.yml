@@ -54,3 +54,36 @@ jobs:
           path: /root/artools-workspace/iso/artixy/*.iso
           retention-days: 7
           compression-level: 0
+
+  boot:
+    name: Boot test (${{ matrix.firmware }})
+    needs: iso
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        firmware: [bios, uefi, serial]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Install QEMU and OCR
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends qemu-system-x86 ovmf socat tesseract-ocr tesseract-ocr-eng netpbm libarchive-tools
+      - uses: actions/download-artifact@v4
+        with:
+          name: artixy-iso
+          path: iso
+      - name: Boot, log in, check installer and services
+        run: tools/qemu-test.sh iso/*.iso ${{ matrix.firmware }} qemu-out
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: boot-screenshots-${{ matrix.firmware }}
+          path: qemu-out/*.png
+          retention-days: 7
