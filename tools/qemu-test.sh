@@ -138,7 +138,8 @@ if wait_for 'login' login 240; then
     sleep 3
     type_line 'sudo sv status /run/runit/service/*'
     sleep 3
-    check 'run: .*NetworkManager' services
+    # OCR sometimes reads "w" as "u" ("NetuorkManager")
+    check 'run: .*Net.orkManager' services
 fi
 
 if [[ -f $out/serial.log ]]; then
