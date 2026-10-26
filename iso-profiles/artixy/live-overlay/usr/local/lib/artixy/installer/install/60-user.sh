@@ -22,9 +22,12 @@ install_user() {
     mkdir -p "$home/.config/artixy"
     echo "${CFG[desktop]}" > "$home/.config/artixy/session"
     cp -r "$ARTIXY_SHARE/config/alacritty" "$home/.config/"
-    local wm
+    local wm dir
     for wm in $(all_wms); do
-        [[ -d $ARTIXY_SHARE/config/$wm ]] && cp -r "$ARTIXY_SHARE/config/$wm" "$home/.config/"
+        # config dirs are named as in ~/.config (Hyprland's is "hypr")
+        dir=$wm
+        [[ $wm == hyprland ]] && dir=hypr
+        [[ -d $ARTIXY_SHARE/config/$dir ]] && cp -r "$ARTIXY_SHARE/config/$dir" "$home/.config/"
     done
     if [[ ${CFG[desktop]} == hyprland ]]; then
         local layout=${CFG[keyboard]%%:*} variant=
