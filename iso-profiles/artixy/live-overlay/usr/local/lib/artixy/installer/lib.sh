@@ -68,6 +68,7 @@ warn() {
 
 die() {
     gum style --foreground 196 --bold "artixy-install: $*" >&2
+    ((AUTO)) && echo "ARTIXY-INSTALL-FAILED"
     exit 1
 }
 

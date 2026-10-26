@@ -82,6 +82,8 @@ monitor "sendkey ret"
 sleep 3
 
 type_line "artixy-install --auto username=$user password=$pass desktop=$desktop encrypt=$encrypt reboot=poweroff log=/dev/ttyS0"
+sleep 30
+shot install-started
 
 # Wait for the installer's verdict on the serial log, and for the VM to
 # power off.
@@ -90,7 +92,7 @@ while ((t < limit)); do
     sleep 30
     t=$((t + 30))
     if grep -q 'ARTIXY-INSTALL-FAILED' "$serial" 2>/dev/null; then
-        shot install-failed >/dev/null
+        shot install-failed
         echo "FAIL: installer reported a failure after ${t}s"
         failed=$((failed + 1))
         finish
@@ -98,10 +100,14 @@ while ((t < limit)); do
     if ! running; then
         break
     fi
-    ((t % 300 == 0)) && echo "   ... ${t}s: $(tr -d '\r' < "$serial" | grep -v '^\s*$' | tail -1 | cut -c1-120)"
+    if ((t % 300 == 0)); then
+        echo "   ... ${t}s: $(tr -d '\r' < "$serial" | grep -v '^\s*$' | tail -1 | cut -c1-120)"
+        # with nothing on the serial port yet, show the screen instead
+        [[ -s $serial ]] || shot "install-${t}s"
+    fi
 done
 if running; then
-    shot install-timeout >/dev/null
+    shot install-timeout
     echo "FAIL: install did not finish in ${limit}s"
     failed=$((failed + 1))
     finish

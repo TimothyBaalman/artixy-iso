@@ -1,9 +1,16 @@
 # Network: the install downloads everything, so check for a connection first.
 
-online() { curl -sf -m 10 -o /dev/null https://gitea.artixlinux.org; }
+# Any HTTP answer counts: only a failed connection (DNS, no route) fails.
+online() { curl -s -m 15 -o /dev/null https://artixlinux.org; }
 
 ask_network() {
-    online && return
+    local i
+    for i in 1 2 3 4 5 6; do
+        online && return
+        # DHCP may still be running right after boot
+        ((AUTO)) || break
+        sleep 10
+    done
     ((AUTO)) && die "no network connection"
     while ! online; do
         header "No network connection"
