@@ -31,8 +31,10 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: artixlinux/artixlinux:latest
-      # buildiso mounts overlayfs and runs chroots
-      options: --privileged
+      # buildiso mounts overlayfs and runs chroots. The chroots must live on
+      # the runner's ext4 disk: the container's own overlay root cannot be an
+      # overlayfs upperdir.
+      options: --privileged -v /mnt/artools:/var/lib/artools
     steps:
       - name: Install artools
         run: |
