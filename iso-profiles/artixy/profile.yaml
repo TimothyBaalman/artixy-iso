@@ -1,0 +1,62 @@
+---
+# Artixy live installer ISO (runit only).
+#
+# Build:  ./build.sh   (wraps: buildiso -p artixy -i runit)
+#
+# Like Omarchy's ISO, the live system is a console that starts the Artixy
+# installer on tty1. The desktop (Hyprland, or i3 on XLibre), optional apps
+# and the AI tier are chosen in the installer and installed onto the target,
+# so none of them are in this image.
+#
+# rootfs = the base layer of the live system
+# livefs = live-only tools layered on top (installer, partitioning, network)
+# The profile must have a livefs: buildiso boots every profile except "base"
+# with overlay=livefs (artools lib/iso/initcpio.sh).
+
+live-session:
+  user: artix
+  password: artix
+  autologin: false
+  use-xlibre: false
+  services:
+    - acpid
+    - metalog
+    - NetworkManager
+  # runit has no per-user services in artools; ignored for runit builds.
+  user-services: []
+
+rootfs:
+  packages:
+    - mkinitcpio-nfs-utils
+    - networkmanager
+    - squashfs-tools
+  packages-init:
+    dinit: []
+    openrc: []
+    runit:
+      - metalog-runit
+      - networkmanager-runit
+    s6: []
+
+livefs:
+  packages:
+    - artix-grub-live
+    - artools-base
+    - broadcom-wl
+    - curl
+    - git
+    - gptfdisk
+    - gum
+    - jq
+    - neovim
+    - parted
+    - pv
+    - rsync
+    - terminus-font
+    - wget
+  packages-init:
+    dinit: []
+    openrc: []
+    runit:
+      - artix-live-runit
+    s6: []

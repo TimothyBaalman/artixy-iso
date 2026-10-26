@@ -1,0 +1,89 @@
+---
+# Packages common to every Artixy profile.
+#
+# Based on artix/iso-profiles common/common.yaml (commit 65aab80c, 2025-12-08),
+# trimmed to what a TTY live installer needs. buildiso reads this file because
+# iso-profiles/common exists in the workspace (see artools lib/iso/profile.sh).
+#
+# Changes from upstream:
+#   - crda dropped (no longer packaged; wireless-regdb replaces it)
+#   - vi swapped for ex-vi-compat (vi was retired from the Artix repos)
+#   - packages-xorg, packages-xlibre and packages-misc are empty: the live ISO
+#     is console only, and the X server / Wayland stack is installed onto the
+#     target by the installer. XLibre is no longer in the Artix repos (removed
+#     2026-08-29), so it comes from XLibre's own repo at install time.
+#   - only runit service packages are listed (Artixy is runit only for now).
+
+packages-base:
+  - base
+  - intel-ucode
+  - amd-ucode
+  - acpi
+  - alsa-firmware
+  - b43-fwcutter
+  - btrfs-progs
+  - dhclient
+  - diffutils
+  - dmraid
+  - dosfstools
+  - efibootmgr
+  - e2fsprogs
+  - exfat-utils
+  - f2fs-tools
+  - grub
+  - artix-grub-theme
+  - inetutils
+  - iptables
+  - jfsutils
+  - linux
+  - linux-firmware
+  - linux-headers
+  - lsb-release
+  - logrotate
+  - man-db
+  - man-pages
+  - memtest86+
+  - mkinitcpio
+  - modemmanager
+  - nano
+  - nbd
+  - net-tools
+  - ntfs-3g
+  - os-prober
+  - sudo
+  - sysfsutils
+  - texinfo
+  - usbutils
+  - ex-vi-compat
+  - which
+  - wireless-regdb
+  - xfsprogs
+  - zsh
+packages-apps:
+  - inxi
+  - powertop
+packages-xorg: []
+packages-xlibre: []
+packages-misc: []
+packages-init:
+  dinit: []
+  openrc: []
+  runit:
+    - runit
+    - blocaled
+    - rsm
+    - elogind-runit
+    - dbus-runit
+    - acpid-runit
+    - cronie-runit
+    - cryptsetup-runit
+    - dhcpcd-runit
+    - haveged-runit
+    - lvm2-runit
+    - mdadm-runit
+    - ntp-runit
+    - openssh-runit
+    - wpa_supplicant-runit
+  s6: []
+packages-boot:
+  - iso-initcpio
