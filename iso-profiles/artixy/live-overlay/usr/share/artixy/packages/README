@@ -1,0 +1,14 @@
+Package lists for the Artixy installer, one package per line, # for comments.
+%init% is replaced by the target's init system (runit), so service packages
+read like "networkmanager-%init%".
+
+base.txt            always installed by basestrap
+desktop.txt         every desktop
+wm/<name>.txt       one per window manager (hyprland, i3, openbox, ...)
+x11.txt             added when any X11 window manager is picked
+apps/<name>.txt     the optional apps checklist
+aur/<name>.txt      built from the AUR with yay (not checked by
+                    tools/check-packages.sh, and a failure there only warns)
+
+XLibre itself comes from the [xlibre-stable] repo (see ../pacman/) and is
+installed by install/40-xlibre.sh, not from these lists.

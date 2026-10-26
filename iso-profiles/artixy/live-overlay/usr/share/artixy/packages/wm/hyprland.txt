@@ -1,0 +1,13 @@
+hyprland
+hyprlock
+hypridle
+hyprpaper
+hyprpolkitagent
+xdg-desktop-portal-hyprland
+qt6-wayland
+waybar
+fuzzel
+mako
+grim
+slurp
+wl-clipboard

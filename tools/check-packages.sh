@@ -3,6 +3,9 @@
 #
 # Usage: tools/check-packages.sh [profile]   (default: artixy)
 #
+# Checks the ISO's own packages and the installer's package lists
+# (live-overlay/usr/share/artixy/packages/, except the AUR ones).
+#
 # Needs only curl, yq and python3, so it runs on any machine. It asks
 # gitea.artixlinux.org which stable repo (system/world/galaxy) holds each
 # package's pkgbase, so it catches renamed or dropped packages before a
@@ -15,6 +18,7 @@ profile=${1:-artixy}
 init=${INITSYS:-runit}
 common=$root/iso-profiles/common/common.yaml
 yaml=$root/iso-profiles/$profile/profile.yaml
+lists=$root/iso-profiles/$profile/live-overlay/usr/share/artixy/packages
 api=https://gitea.artixlinux.org/api/v1/repos/packages
 
 # Split packages whose pkgbase has another name.
@@ -26,6 +30,12 @@ pkgbase_of() {
         amd-ucode) echo linux-firmware ;;
         dhclient) echo dhcp ;;
         memtest86+) echo memtest86plus ;;
+        bluez-utils) echo bluez ;;
+        pipewire-*) echo pipewire ;;
+        wireshark-*) echo wireshark ;;
+        tree-sitter-cli) echo tree-sitter ;;
+        ttf-*-nerd) echo nerd-fonts ;;
+        zramen-*) echo zramen ;;
         *) echo "$1" ;;
     esac
 }
@@ -38,7 +48,11 @@ mapfile -t pkgs < <(
         for fs in rootfs livefs; do
             yq -r ".$fs.packages[], .$fs[\"packages-init\"][\"$init\"][]" "$yaml"
         done
-    } | grep -v '^null$' | sort -u
+        if [[ -d $lists ]]; then
+            find "$lists" -name '*.txt' ! -path '*/aur/*' -exec \
+                sed -e 's/#.*//' -e "s/%init%/$init/g" -e 's/[[:space:]]//g' {} +
+        fi
+    } | grep -v '^null$' | grep -v '^$' | sort -u
 )
 [[ ${#pkgs[@]} -gt 0 ]] || { echo "no packages read from $yaml" >&2; exit 1; }
 

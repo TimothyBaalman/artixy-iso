@@ -1,22 +1,142 @@
 #!/bin/bash
-# Artixy installer entry point.
+# Artixy installer.
 #
-# Placeholder until plan step 3 (the gum installer) lands. It shows that the
-# live ISO boots into the installer and gives a way out to a shell.
+# Usage:
+#   artixy-install                         menu: install, Wi-Fi, shell, power
+#   artixy-install --install [key=value]   guided install; keys given here
+#                                          are not asked
+#   artixy-install --auto [key=value]      unattended install: nothing is
+#                                          asked, unset keys get defaults
+#   artixy-install --config FILE [...]     read key=value lines from FILE
+#
+# Keys (defaults are for --auto):
+#   keyboard=us          XKB layout, layout:variant for variants (us:dvorak)
+#   timezone=UTC         locale=en_US.UTF-8     hostname=artixy
+#   username=  password= (required with --auto)
+#   disk=                the only disk, if there is just one
+#   encrypt=no           yes for LUKS2; luks_password= defaults to password
+#   desktop=hyprland     or i3 (on XLibre)
+#   extra_wms=           comma list: openbox,fluxbox,xfwm4
+#   apps=neovim          comma list: neovim,code,vscodium,vscode,freecad,
+#                        kicad,obs,gimp,inkscape,wireshark,libreoffice
+#   aur=yes              no skips yay, Brave and the AUR apps
+#   reboot=              yes, poweroff, or no (asked when not --auto)
+#   log=                 also copy the install output here (e.g. /dev/ttyS0)
+#
+# Questions live in /usr/local/lib/artixy/installer/ask/, install phases in
+# install/, package lists and configs in /usr/share/artixy/.
 
-set -u
+set -Eeuo pipefail
+
+if ((EUID != 0)); then
+    exec sudo -- "$0" "$@"
+fi
 
 . /usr/local/lib/artixy/service.sh
+. /usr/local/lib/artixy/installer/lib.sh
+for f in /usr/local/lib/artixy/installer/{ask,install}/*.sh; do
+    . "$f"
+done
 
-gum style --border rounded --padding "1 3" --margin 1 \
-    "Artixy" "Artix Linux + runit" "" \
-    "The installer is not written yet." \
-    "Network: nmtui    Partitioning: cfdisk / parted    Base install: basestrap"
+ASK_STEPS=(network keyboard locale user disk desktop apps confirm)
+INSTALL_STEPS=(disk base system xlibre packages user aur editor_config boot services)
 
-choice=$(gum choose "Open a shell" "Set up Wi-Fi (nmtui)" "Power off" "Reboot") || choice="Open a shell"
+banner() {
+    gum style --border rounded --padding "1 3" --margin 1 --border-foreground 212 \
+        "Artixy" "Artix Linux + runit"
+}
 
-case $choice in
-    "Set up Wi-Fi (nmtui)") nmtui; exec "$0" ;;
-    "Power off") sudo poweroff ;;
-    "Reboot") sudo reboot ;;
-esac
+menu() {
+    while :; do
+        clear
+        banner
+        case $(gum choose "Install Artixy" "Set up Wi-Fi (nmtui)" "Open a shell" "Power off" "Reboot" || echo "Open a shell") in
+            "Install Artixy") "$0" --install && return 0 || gum input --placeholder "Press Enter to go back to the menu" >/dev/null || true ;;
+            "Set up Wi-Fi (nmtui)") nmtui || true ;;
+            "Open a shell") return 0 ;;
+            "Power off") poweroff ;;
+            "Reboot") reboot ;;
+        esac
+    done
+}
+
+cleanup_target() {
+    rm -f "$ARTIXY_TARGET/etc/sudoers.d/99-artixy-install" 2>/dev/null || true
+    umount -R "$ARTIXY_TARGET" 2>/dev/null || true
+    cryptsetup close cryptroot 2>/dev/null || true
+}
+
+on_error() {
+    local status=$? line=$1 cmd=$2
+    trap - ERR
+    gum style --foreground 196 --bold --margin "1 0" \
+        "The install failed (exit $status) at line $line:" "  $cmd" \
+        "The full log is in $LOG."
+    echo "ARTIXY-INSTALL-FAILED"
+    cleanup_target
+    exit "$status"
+}
+
+finish() {
+    local t=$ARTIXY_TARGET
+    save_config > "$t/var/log/artixy-install.conf"
+    header "Done"
+    if ((${#WARNINGS[@]})); then
+        info "Finished with warnings:"
+        printf '  - %s\n' "${WARNINGS[@]}"
+    fi
+    info "Log in as ${CFG[username]} on tty1 to start ${CFG[desktop]}."
+    echo "ARTIXY-INSTALL-OK"
+    cp "$LOG" "$t/var/log/artixy-install.log"
+    sync
+    cleanup_target
+
+    if ! is_set reboot; then
+        ((AUTO)) && CFG[reboot]=no
+        ((AUTO)) || { gum confirm "Remove the install medium and reboot now?" && CFG[reboot]=yes || CFG[reboot]=no; }
+    fi
+    case ${CFG[reboot]} in
+        yes) reboot ;;
+        poweroff) poweroff ;;
+    esac
+}
+
+run_install() {
+    local step
+    for step in "${ASK_STEPS[@]}"; do
+        "ask_$step"
+    done
+
+    : > "$LOG"
+    if is_set log; then
+        exec > >(tee -a "$LOG" "${CFG[log]}") 2>&1
+    else
+        exec > >(tee -a "$LOG") 2>&1
+    fi
+    trap 'on_error $LINENO "$BASH_COMMAND"' ERR
+
+    for step in "${INSTALL_STEPS[@]}"; do
+        "install_$step"
+    done
+    trap - ERR
+    finish
+}
+
+mode=menu
+while (($#)); do
+    case $1 in
+        --auto) AUTO=1 mode=install ;;
+        --install) mode=install ;;
+        --config) load_config "$2"; shift; mode=install ;;
+        -h|--help) sed -n '2,/^$/{s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
+        *=*) set_kv "$1"; mode=install ;;
+        *) echo "artixy-install: unknown option '$1' (see --help)" >&2; exit 1 ;;
+    esac
+    shift
+done
+
+if [[ $mode == menu ]]; then
+    menu
+else
+    run_install
+fi

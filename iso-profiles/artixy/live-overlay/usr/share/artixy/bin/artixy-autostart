@@ -1,0 +1,29 @@
+#!/bin/sh
+# Background programs for a desktop session. Artix has no systemd user
+# units, so the session starts them: artixy-autostart <session>
+#
+# Hyprland starts its bar, notifications and idle locker from hyprland.conf;
+# the X11 window managers get theirs here.
+
+session=${1:-i3}
+
+if ! pgrep -u "$(id -u)" -x pipewire >/dev/null; then
+    pipewire >/dev/null 2>&1 &
+    sleep 1
+    wireplumber >/dev/null 2>&1 &
+    pipewire-pulse >/dev/null 2>&1 &
+fi
+
+[ "$session" = hyprland ] && exit 0
+
+/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 >/dev/null 2>&1 &
+dunst >/dev/null 2>&1 &
+picom -b >/dev/null 2>&1
+nm-applet >/dev/null 2>&1 &
+udiskie -t >/dev/null 2>&1 &
+xsetroot -solid '#1e1e2e'
+xautolock -time 10 -locker 'i3lock -c 1e1e2e' >/dev/null 2>&1 &
+
+case $session in
+    openbox|xfwm4) tint2 >/dev/null 2>&1 & ;;
+esac

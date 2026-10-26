@@ -1,0 +1,17 @@
+# Added when any X11 window manager is picked. The X server is XLibre,
+# installed from [xlibre-stable] before this list.
+xorg-xinit
+xorg-xauth
+xorg-xrandr
+xorg-xrdb
+xorg-xsetroot
+xorg-setxkbmap
+xclip
+xdotool
+xautolock
+feh
+maim
+picom
+dunst
+rofi
+polkit-gnome
