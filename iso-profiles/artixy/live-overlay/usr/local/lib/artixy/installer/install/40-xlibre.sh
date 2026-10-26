@@ -7,10 +7,11 @@ install_xlibre() {
     local t=$ARTIXY_TARGET conf
     header "Adding the XLibre repo"
 
-    cp "$ARTIXY_SHARE/keys/xlibre-archlinux.asc" "$t/tmp/"
-    in_target pacman-key --add /tmp/xlibre-archlinux.asc
+    # not /tmp: artix-chroot mounts a fresh tmpfs there
+    cp "$ARTIXY_SHARE/keys/xlibre-archlinux.asc" "$t/root/"
+    in_target pacman-key --add /root/xlibre-archlinux.asc
     in_target pacman-key --lsign-key 0C92313001CFCA27627B9098B97F7C613F359424
-    rm -f "$t/tmp/xlibre-archlinux.asc"
+    rm -f "$t/root/xlibre-archlinux.asc"
 
     if ! grep -q '^\[xlibre-stable\]' "$t/etc/pacman.conf"; then
         conf=$(grep -v '^#' "$ARTIXY_SHARE/pacman/xlibre-stable.conf" | grep -v '^$')
