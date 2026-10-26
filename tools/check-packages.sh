@@ -43,25 +43,44 @@ mapfile -t pkgs < <(
 [[ ${#pkgs[@]} -gt 0 ]] || { echo "no packages read from $yaml" >&2; exit 1; }
 
 missing=0
+unchecked=0
+tmp=$(mktemp)
+trap 'rm -f "$tmp"' EXIT
 for pkg in "${pkgs[@]}"; do
     base=$(pkgbase_of "$pkg")
+    status=$(curl -sS -m 20 -o "$tmp" -w '%{http_code}' "$api/$base/raw/.artixlinux%2Fpkgbase.yaml" 2>/dev/null || echo 000)
+    if [[ $status == 404 ]]; then
+        printf 'MISSING  %s (no pkgbase %s)\n' "$pkg" "$base"
+        missing=$((missing + 1))
+        continue
+    fi
     # Print "repo:version" for each stable repo whose build of $base ships $pkg.
-    repo=$(curl -fsS -m 20 "$api/$base/raw/.artixlinux%2Fpkgbase.yaml" 2>/dev/null |
-        python3 -c '
+    # Exit 3 when the reply is not pkgbase YAML (bot challenge, outage).
+    repo=$(python3 -c '
 import sys, yaml
 pkg = sys.argv[1]
-repos = yaml.safe_load(sys.stdin)["repos"]
+try:
+    repos = yaml.safe_load(open(sys.argv[2]))["repos"]
+except Exception:
+    sys.exit(3)
 print(" ".join(k + ":" + v["version"] for k, v in repos.items()
                if v["version"] and "-" not in k
                and any(f.startswith(pkg + "-" + v["version"]) for f in v["packages"])))
-' "$pkg" 2>/dev/null || true)
+' "$pkg" "$tmp") || {
+        printf 'UNCHECKED %s (gitea answered HTTP %s)\n' "$pkg" "$status"
+        unchecked=$((unchecked + 1))
+        continue
+    }
     if [[ -n $repo ]]; then
         printf 'ok       %-28s %s\n' "$pkg" "$repo"
     else
-        printf 'MISSING  %s\n' "$pkg"
+        printf 'MISSING  %s (not in a stable repo)\n' "$pkg"
         missing=$((missing + 1))
     fi
 done
 
-echo "${#pkgs[@]} packages checked, $missing missing"
+echo "${#pkgs[@]} packages checked, $missing missing, $unchecked unchecked"
+if [[ $unchecked -gt 0 ]]; then
+    echo "warning: gitea.artixlinux.org did not answer for $unchecked packages; the ISO build is the real check" >&2
+fi
 [[ $missing -eq 0 ]]
