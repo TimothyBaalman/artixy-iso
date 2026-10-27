@@ -16,8 +16,8 @@ NOTES=()
 
 # Keys accepted on the command line and in config files.
 CFG_KEYS=(keyboard timezone locale username password hostname disk encrypt
-          luks_password desktop extra_wms apps aur ai ai_providers ai_endpoint
-          ai_model reboot log)
+          luks_password desktop extra_wms apps aur ai ai_tools ai_providers
+          ai_endpoint ai_model reboot log)
 
 is_set() { [[ -n ${CFG[$1]:-} ]]; }
 

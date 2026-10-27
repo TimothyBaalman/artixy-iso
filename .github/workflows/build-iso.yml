@@ -101,12 +101,12 @@ jobs:
             firmware: bios
             encrypt: "no"
             apps: neovim,python,cpp,docker,hex,diskusage,sysmon,kitty
-            extra: ai=some ai_providers=claude
+            extra: ai=some ai_tools=claude-code,opencode ai_providers=claude
           - desktop: hyprland
             firmware: uefi
             encrypt: "yes"
             apps: neovim,platformio,flutter,virtualbox,dolphin,ghostty
-            extra: ai=full ai_providers=claude,ollama
+            extra: ai=full ai_tools=claude-code,odysseus ai_providers=claude,ollama
     steps:
       - uses: actions/checkout@v4
       - name: Enable KVM

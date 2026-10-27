@@ -6,12 +6,13 @@
 # Inside the sandbox:
 #   - the system (/usr, /etc, /opt) is read only
 #   - the home folder is empty, apart from the current folder (read-write),
-#     the AI tools' own settings (~/.claude, ~/.claude.json, read-write),
-#     ~/.local/bin and ~/.local/share/claude, and ~/.gitconfig (read only)
+#     the AI tools' own settings and state (~/.claude, ~/.claude.json,
+#     ~/.local/share/claude, and opencode's folders, read-write), and their
+#     programs (~/.local/bin, ~/.opencode) and ~/.gitconfig (read only)
 #   - /tmp is private, other processes are hidden, the network works
 #   --rw/--ro PATH add more folders, e.g. --ro ~/Documents/datasheets
 #
-# Artixy's ai=some tier runs claude through this (see ~/.bashrc).
+# Artixy's ai=some tier runs claude and opencode through this (see ~/.bashrc).
 # The home folder itself and / are refused as the project folder.
 # ~/.local/bin is read only inside, so Claude Code cannot update itself
 # there; update it outside with: command claude update
@@ -44,17 +45,18 @@ args=(--die-with-parent --unshare-all --share-net
       --ro-bind-try /run/user/"$UID"/bus /run/user/"$UID"/bus
       --tmpfs "$HOME")
 
-# tool state that must persist between runs
-mkdir -p "$HOME/.claude" "$HOME/.local/share/claude"
-[[ -e $HOME/.claude.json ]] || echo '{}' > "$HOME/.claude.json"
-args+=(--bind "$HOME/.claude" "$HOME/.claude"
-       --bind "$HOME/.claude.json" "$HOME/.claude.json"
-       --bind "$HOME/.local/share/claude" "$HOME/.local/share/claude"
-       --ro-bind-try "$HOME/.local/bin" "$HOME/.local/bin"
-       --ro-bind-try "$HOME/.gitconfig" "$HOME/.gitconfig"
-       --bind "$project" "$project" --chdir "$project")
+# Tool state that persists between runs; the installer creates it for the
+# tools it installs, and anything missing is skipped.
+for p in .claude .claude.json .local/share/claude .config/opencode \
+         .local/share/opencode .local/state/opencode .cache/opencode; do
+    args+=(--bind-try "$HOME/$p" "$HOME/$p")
+done
+for p in .local/bin .opencode .gitconfig; do
+    args+=(--ro-bind-try "$HOME/$p" "$HOME/$p")
+done
+args+=(--bind "$project" "$project" --chdir "$project")
 
 exec bwrap "${args[@]}" "${extra[@]}" \
-    --setenv PATH "$HOME/.local/bin:/usr/local/bin:/usr/bin" \
+    --setenv PATH "$HOME/.local/bin:$HOME/.opencode/bin:/usr/local/bin:/usr/bin" \
     --setenv ARTIXY_SANDBOX 1 \
     -- "$@"

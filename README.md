@@ -12,7 +12,7 @@ integration to set up (none, some, or full).
 | 1 | Package list + artools buildiso profile | done |
 | 2 | Bootable live ISO tested in QEMU | done |
 | 3 | gum installer | CI installs i3 (BIOS) and Hyprland (UEFI, LUKS) |
-| 4 | AI tiers | CI installs the some tier (i3) and the full tier with Ollama (Hyprland) |
+| 4 | AI tiers | CI installs the some tier (i3) and the full tier with Odysseus and Ollama (Hyprland) |
 
 ## Layout
 
@@ -63,8 +63,8 @@ opens. **Install Artixy** asks, in order:
 
    Always installed, so not in the list: gcc and make (base-devel), Python 3,
    btop, Nautilus and Alacritty.
-7. AI tools: none, some or full (see [AI tiers](#ai-tiers)), and where the
-   models come from: Claude (an Anthropic account), Ollama on this machine,
+7. AI: none, some or full (see [AI tiers](#ai-tiers)), the tools (Claude
+   Code, opencode, Odysseus), and where the models come from: Claude (an Anthropic account), Ollama on this machine,
    or an Ollama server elsewhere on the network
 8. a summary to confirm
 
@@ -112,24 +112,44 @@ answers (without passwords) to `/var/log/artixy-install.conf`.
 | Tier | What you get |
 |---|---|
 | none | nothing AI related |
-| some | Claude Code, run through `artixy-sandbox` (bubblewrap): it sees the folder it is started in (read-write), its own settings, and the system read only. The rest of your home folder (SSH keys, browser profile, other projects) is not there, and other processes are hidden. The network works. |
-| full | Claude Code with the same access as you. It still asks before it runs a command or edits a file; `claude --dangerously-skip-permissions` turns that off when you want it to. |
+| some | the coding agents run through `artixy-sandbox` (bubblewrap): they see the folder they are started in (read-write), their own settings, and the system read only. The rest of your home folder (SSH keys, browser profile, other projects) is not there, and other processes are hidden. The network works. |
+| full | the agents have the same access as you. They still ask before running a command or editing a file; `claude --dangerously-skip-permissions` turns that off when you want it to. |
 
-- Claude Code comes from Anthropic's native installer (`~/.local/bin/claude`,
-  updates itself). Run `claude` in a project folder and sign in.
-- **Ollama** (`ai_providers=ollama`) is not in the Artix repos, so its
+Tools (`ai_tools=`, pick any):
+
+- **Claude Code** (`claude-code`): Anthropic's native installer
+  (`~/.local/bin/claude`, updates itself). Run `claude` in a project folder
+  and sign in.
+- **opencode** (`opencode`): its own installer (`~/.opencode/bin`). With a
+  local model, `~/.config/opencode/opencode.json` gets an Ollama provider;
+  `opencode auth login` adds Claude or other providers.
+- **Odysseus** (`odysseus`): the self-hosted AI workspace (chat, agents,
+  research, notes) in the browser. It runs as Docker containers, so picking
+  it also installs Docker. The main branch is cloned to
+  `~/.local/share/odysseus`; `odysseus up` starts it at
+  http://localhost:7011 and prints the admin password the first time, and it
+  then starts with Docker on every boot. `odysseus update|down|logs`. It is
+  not sandboxed by `artixy-sandbox`; Docker keeps it in its containers.
+
+Models (`ai_providers=`, `ai_endpoint=`, `ai_model=`):
+
+- **Claude**: an Anthropic account, signed into on first run.
+- **Ollama** on this machine (`ollama`): not in the Artix repos, so its
   official installer puts it in `/usr/local`, and Artixy adds a runit service
   (`ollama`, running as the `ollama` user, models in `/var/lib/ollama`).
-  `ollama pull qwen3-coder` downloads a model.
-- **`claude-local`** runs Claude Code against a local model instead of an
-  Anthropic account, through Ollama's Anthropic compatible API. The server and
-  model are in `/etc/artixy/ai.conf` (`AI_ENDPOINT`, `AI_MODEL`), or set them
-  for one run: `AI_MODEL=qwen3-coder:30b claude-local`. An Ollama server on
-  another machine works the same way with `ai_endpoint=http://gpu-box:11434`.
-- With `some`, `artixy-sandbox --ro ~/datasheets` or `--rw PATH` gives the
-  sandbox more folders, `command claude` skips the sandbox for one run, and
-  `command claude update` updates Claude Code (its folder is read only inside
-  the sandbox). `artixy-sandbox` works for any command, not just Claude Code.
+  `ollama pull qwen3-coder` downloads a model. With Odysseus it listens on
+  all interfaces so the container can reach it; ufw still blocks it from the
+  network, and `odysseus up` opens it to `docker0` only.
+- **An Ollama server elsewhere**: `ai_endpoint=http://gpu-box:11434`.
+- **`claude-local`** runs Claude Code against the local model through
+  Ollama's Anthropic compatible API. The server and model are in
+  `/etc/artixy/ai.conf` (`AI_ENDPOINT`, `AI_MODEL`), or set them for one run:
+  `AI_MODEL=qwen3-coder:30b claude-local`.
+
+With `some`, `artixy-sandbox --ro ~/datasheets` or `--rw PATH` gives the
+sandbox more folders, `command claude` skips the sandbox for one run, and
+`command claude update` updates Claude Code (its folder is read only inside
+the sandbox). `artixy-sandbox` works for any command.
 
 ### Unattended installs
 
@@ -190,10 +210,11 @@ goes further: it runs `artixy-install --auto` onto a blank 32 GB disk (with the
 installer's output on the VM's serial port), boots the installed disk, types
 the LUKS passphrase if encrypted, and checks from tty2 that the desktop,
 XLibre (for i3), yay, Brave and each picked app are set up and the runit
-services are up, and for the AI tiers that Claude Code is installed and, with
-`some`, that the sandbox can write the project folder but cannot see
-`~/.bashrc`. CI runs it for i3 on BIOS (`ai=some`) and for Hyprland on UEFI
-with LUKS (`ai=full` with Ollama), and between them every dev tool option. It needs
+services are up, and for the AI tiers that each picked tool is installed and,
+with `some`, that the sandbox can write the project folder and run the
+agents but cannot see `~/.bashrc`. CI runs it for i3 on BIOS (`ai=some` with
+Claude Code and opencode) and for Hyprland on UEFI with LUKS (`ai=full` with
+Claude Code, Odysseus and Ollama), and between them every dev tool option. It needs
 network for the package downloads and takes 10 to 30 minutes.
 
 ## Notes

@@ -1,12 +1,15 @@
 # AI tier and where its models come from.
 #
 #   ai=none   nothing AI related is installed
-#   ai=some   Claude Code runs in a bubblewrap sandbox (artixy-sandbox): it
-#             sees the project folder it is started in, its own settings and
-#             the network, but not the rest of the home folder
-#   ai=full   Claude Code runs unsandboxed, with the same access as the user;
-#             it still asks before running commands or editing files
+#   ai=some   the coding agents run in a bubblewrap sandbox (artixy-sandbox):
+#             they see the project folder they are started in, their own
+#             settings and the network, but not the rest of the home folder
+#   ai=full   the agents run unsandboxed, with the same access as the user;
+#             they still ask before running commands or editing files
 #
+#   ai_tools      comma list: claude-code, opencode (coding agents in the
+#                 terminal), odysseus (self-hosted web workspace in Docker,
+#                 http://localhost:7011; adds the docker app)
 #   ai_providers  comma list: claude (Anthropic account), ollama (Ollama on
 #                 this machine, as a runit service)
 #   ai_endpoint   an Ollama (or other Anthropic API compatible) server for
@@ -16,8 +19,14 @@
 
 AI_TIERS=(
     "none|None: no AI tools"
-    "some|Some: Claude Code in a sandbox that only sees the project folder"
-    "full|Full: Claude Code with the same access as you"
+    "some|Some: coding agents in a sandbox that only sees the project folder"
+    "full|Full: coding agents with the same access as you"
+)
+
+AI_TOOLS=(
+    "claude-code|Claude Code (terminal coding agent)"
+    "opencode|opencode (open source terminal coding agent)"
+    "odysseus|Odysseus (self-hosted AI workspace in the browser, runs in Docker)"
 )
 
 AI_PROVIDERS=(
@@ -47,6 +56,25 @@ ask_ai() {
     fi
     [[ ${CFG[ai]} == @(none|some|full) ]] || die "ai must be none, some or full"
     [[ ${CFG[ai]} == none ]] && return
+
+    if ! is_set ai_tools; then
+        if ((AUTO)); then
+            CFG[ai_tools]=claude-code
+        else
+            header "AI tools (space to select, enter when done)"
+            picked=$(for a in "${AI_TOOLS[@]}"; do echo "${a#*|}"; done |
+                gum choose --no-limit --selected "${AI_TOOLS[0]#*|}") || exit 1
+            CFG[ai_tools]=$(while IFS= read -r l; do ai_pick AI_TOOLS "$l"; done <<< "$picked" | paste -sd,)
+        fi
+    fi
+    local tool
+    for tool in ${CFG[ai_tools]//,/ }; do
+        [[ $tool == @(claude-code|opencode|odysseus) ]] || die "unknown AI tool '$tool' (claude-code, opencode or odysseus)"
+    done
+    # Odysseus runs as Docker containers
+    if has ai_tools odysseus && ! has apps docker; then
+        CFG[apps]=${CFG[apps]:+${CFG[apps]},}docker
+    fi
 
     if ! is_set ai_providers; then
         if ((AUTO)); then
@@ -78,7 +106,7 @@ ai_summary() {
     case ${CFG[ai]} in
         none) echo none ;;
         *)
-            echo "${CFG[ai]}: Claude Code$([[ ${CFG[ai]} == some ]] && echo ' (sandboxed)')${CFG[ai_providers]:+, ${CFG[ai_providers]//,/, }}${CFG[ai_endpoint]:+, local models from ${CFG[ai_endpoint]}}"
+            echo "${CFG[ai]}: ${CFG[ai_tools]//,/, }$([[ ${CFG[ai]} == some ]] && echo ' (sandboxed)'); models: ${CFG[ai_providers]//,/, }${CFG[ai_endpoint]:+ + ${CFG[ai_endpoint]}}"
             ;;
     esac
 }

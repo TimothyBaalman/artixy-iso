@@ -9,7 +9,7 @@
 #   apps      the installer's apps= list (default neovim); each app is
 #             checked on the installed system
 #   extra     more key=value installer arguments, space separated, e.g.
-#             "ai=some ai_providers=claude"; the AI tier is checked too
+#             "ai=some ai_tools=opencode"; the AI tier is checked too
 #
 # Needs the same tools as qemu-test.sh plus qemu-img. The live system needs
 # network (QEMU's user networking is enough): the install downloads every
@@ -176,19 +176,22 @@ if ((${#devchecks[@]})); then
     sleep 5
     check 'APPS-OK' apps
 fi
-# AI tier: Claude Code installed; with ai=some, the sandbox sees the project
-# folder and Claude Code but not the rest of the home folder.
+# AI tier: each picked tool is installed; with ai=some, the sandbox can
+# write the project folder and run the agents, but not see ~/.bashrc.
 if [[ -n $ai && $ai != none ]]; then
-    aichecks=("test -x $home/.local/bin/claude" "test -x /usr/local/bin/artixy-sandbox")
+    aichecks=("test -x /usr/local/bin/artixy-sandbox")
+    inside="touch made-inside && test ! -e $home/.bashrc"
+    [[ $extra == *claude-code* ]] && aichecks+=("test -x $home/.local/bin/claude") inside+=" && claude --version | grep -q ."
+    [[ $extra == *opencode* ]] && aichecks+=("test -x $home/.opencode/bin/opencode") inside+=" && opencode --version | grep -q ."
+    [[ $extra == *odysseus* ]] && aichecks+=("test -x /usr/local/bin/odysseus" "grep -q host.docker.internal $home/.local/share/odysseus/.env")
     [[ $extra == *ollama* ]] && aichecks+=("test -x /usr/local/bin/ollama" "test -d /etc/runit/sv/ollama")
     if [[ $ai == some ]]; then
-        aichecks+=("mkdir -p $home/proj" "cd $home/proj"
-            "artixy-sandbox sh -c 'touch made-inside && test ! -e $home/.bashrc && claude --version | grep -q .'"
+        aichecks+=("mkdir -p $home/proj" "cd $home/proj" "artixy-sandbox sh -c '$inside'"
             "test -e $home/proj/made-inside" "cd")
     fi
     cmd=$(printf '%s && ' "${aichecks[@]}")
     type_line "clear; ${cmd}echo AI-OK"
-    sleep 8
+    sleep 10
     check 'AI-OK' ai
 fi
 

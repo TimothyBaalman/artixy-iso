@@ -20,8 +20,9 @@
 #   apps=neovim          comma list of ids from ask/70-apps.sh: neovim,code,
 #                        python,cpp,platformio,flutter,docker,dolphin,...
 #   aur=yes              no skips yay, Brave and the AUR apps
-#   ai=none              some: Claude Code in a bubblewrap sandbox that sees
-#                        only the project folder; full: unsandboxed
+#   ai=none              some: coding agents in a bubblewrap sandbox that
+#                        sees only the project folder; full: unsandboxed
+#   ai_tools=claude-code comma list: claude-code,opencode,odysseus
 #   ai_providers=claude  comma list: claude,ollama (Ollama on this machine)
 #   ai_endpoint=         Ollama server for local models (default: this
 #                        machine's, when ollama is picked)
