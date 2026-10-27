@@ -1,0 +1,2 @@
+# Microsoft's VS Code build.
+visual-studio-code-bin

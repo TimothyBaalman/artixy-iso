@@ -1,0 +1,24 @@
+#!/bin/bash
+# Start a desktop session from the console.
+#
+# Usage: artixy-session [hyprland|i3|openbox|fluxbox|xfwm4]
+#
+# With no argument it starts the desktop chosen in the installer
+# (~/.config/artixy/session). ~/.bash_profile runs it on tty1.
+
+session=${1:-$(cat ~/.config/artixy/session 2>/dev/null || echo hyprland)}
+
+case $session in
+    hyprland)
+        hypr=Hyprland
+        command -v start-hyprland >/dev/null && hypr=start-hyprland
+        exec dbus-run-session sh -c "artixy-autostart hyprland; exec $hypr"
+        ;;
+    i3|openbox|fluxbox|xfwm4)
+        exec startx "$HOME/.xinitrc" "$session"
+        ;;
+    *)
+        echo "artixy-session: unknown session '$session'" >&2
+        exit 1
+        ;;
+esac

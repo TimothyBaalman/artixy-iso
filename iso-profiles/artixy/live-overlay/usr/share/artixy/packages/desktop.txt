@@ -1,0 +1,17 @@
+# Installed with every desktop.
+mesa
+polkit
+xdg-user-dirs
+xdg-utils
+xdg-desktop-portal-gtk
+alacritty
+nautilus
+gvfs
+udiskie
+mpv
+imv
+evince
+pavucontrol
+network-manager-applet
+blueman
+brightnessctl

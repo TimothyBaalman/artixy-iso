@@ -1,0 +1,79 @@
+# Artixy i3 config. See https://i3wm.org/docs/userguide.html
+
+set $mod Mod4
+set $terminal alacritty
+set $browser brave
+set $files nautilus
+
+font pango:JetBrainsMono Nerd Font 10
+default_border pixel 2
+gaps inner 4
+gaps outer 4
+client.focused #89b4fa #89b4fa #1e1e2e #f5c2e7 #89b4fa
+floating_modifier $mod
+tiling_drag modifier titlebar
+
+bindsym $mod+Return exec $terminal
+bindsym $mod+space exec rofi -show drun
+bindsym $mod+b exec $browser
+bindsym $mod+e exec $files
+bindsym $mod+w kill
+bindsym $mod+v floating toggle
+bindsym $mod+f fullscreen toggle
+bindsym $mod+l exec i3lock -c 1e1e2e
+bindsym $mod+Shift+r restart
+bindsym $mod+Shift+e exec i3-nagbar -t warning -m 'Log out?' -B 'Yes' 'i3-msg exit'
+bindsym Print exec maim -s | xclip -selection clipboard -t image/png
+bindsym Shift+Print exec maim | xclip -selection clipboard -t image/png
+
+bindsym $mod+Left focus left
+bindsym $mod+Down focus down
+bindsym $mod+Up focus up
+bindsym $mod+Right focus right
+bindsym $mod+Shift+Left move left
+bindsym $mod+Shift+Down move down
+bindsym $mod+Shift+Up move up
+bindsym $mod+Shift+Right move right
+bindsym $mod+h split h
+bindsym $mod+s layout toggle split
+bindsym $mod+t layout tabbed
+
+bindsym $mod+1 workspace number 1
+bindsym $mod+2 workspace number 2
+bindsym $mod+3 workspace number 3
+bindsym $mod+4 workspace number 4
+bindsym $mod+5 workspace number 5
+bindsym $mod+6 workspace number 6
+bindsym $mod+7 workspace number 7
+bindsym $mod+8 workspace number 8
+bindsym $mod+9 workspace number 9
+bindsym $mod+Shift+1 move container to workspace number 1
+bindsym $mod+Shift+2 move container to workspace number 2
+bindsym $mod+Shift+3 move container to workspace number 3
+bindsym $mod+Shift+4 move container to workspace number 4
+bindsym $mod+Shift+5 move container to workspace number 5
+bindsym $mod+Shift+6 move container to workspace number 6
+bindsym $mod+Shift+7 move container to workspace number 7
+bindsym $mod+Shift+8 move container to workspace number 8
+bindsym $mod+Shift+9 move container to workspace number 9
+
+bindsym XF86AudioRaiseVolume exec --no-startup-id pamixer -i 5
+bindsym XF86AudioLowerVolume exec --no-startup-id pamixer -d 5
+bindsym XF86AudioMute exec --no-startup-id pamixer -t
+bindsym XF86MonBrightnessUp exec --no-startup-id brightnessctl set 5%+
+bindsym XF86MonBrightnessDown exec --no-startup-id brightnessctl set 5%-
+
+mode "resize" {
+    bindsym Left resize shrink width 10 px
+    bindsym Down resize grow height 10 px
+    bindsym Up resize shrink height 10 px
+    bindsym Right resize grow width 10 px
+    bindsym Escape mode "default"
+    bindsym Return mode "default"
+}
+bindsym $mod+r mode "resize"
+
+bar {
+    status_command i3status
+    position top
+}
