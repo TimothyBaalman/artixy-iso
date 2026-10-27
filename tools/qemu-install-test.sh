@@ -179,7 +179,7 @@ type_line "clear; sudo sv status /run/runit/service/* | grep -v '^run: '; sudo s
 sleep 2
 type_line "$pass"
 sleep 3
-check 'SVC-OK' services
+check 'S[UV]C-OK' services  # OCR reads V as U
 
 # Best effort: log in on tty1 to start the desktop and keep a screenshot.
 monitor "sendkey ctrl-alt-f1"
