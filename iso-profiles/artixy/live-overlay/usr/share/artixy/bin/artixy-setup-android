@@ -39,20 +39,33 @@ if [[ ! -x $sdkmanager ]]; then
     mv "$tmp/cmdline-tools" "$sdk/cmdline-tools/latest"
 fi
 
-accept_licenses() {
-    # yes exits on SIGPIPE when sdkmanager is done, so ignore its status
-    { yes 2>/dev/null || true; } | "$sdkmanager" --sdk_root="$sdk" --licenses >/dev/null
-}
-
-accept_licenses
-list=$("$sdkmanager" --sdk_root="$sdk" --list)
-# stable releases only: "platforms;android-36 " and "build-tools;36.0.0 "
-platform=$(grep -oE 'platforms;android-[0-9]+ ' <<< "$list" | sort -t- -k2 -n | tail -1)
-build=$(grep -oE 'build-tools;[0-9]+\.[0-9]+\.[0-9]+ ' <<< "$list" | sort -t';' -k2 -V | tail -1)
-[[ -n $platform && -n $build ]] || { echo "artixy-setup-android: could not find a platform and build tools in sdkmanager --list" >&2; exit 1; }
-echo "Installing platform-tools, $platform, $build"
-"$sdkmanager" --sdk_root="$sdk" --install platform-tools $platform $build
-accept_licenses
+tools=$sdk/cmdline-tools/latest/bin
+if [[ -x $tools/android ]]; then
+    # Android CLI, which replaced sdkmanager in 2026. Using it accepts the SDK
+    # terms; package paths use "/" ("platforms/android-36").
+    android=("$tools/android" --sdk="$sdk")
+    "${android[@]}" --no-metrics --version >/dev/null 2>&1 && android+=(--no-metrics)
+    list=$("${android[@]}" sdk list --all)
+    platform=$(grep -oE 'platforms/android-[0-9]+ ' <<< "$list" | sort -t- -k2 -n | tail -1)
+    build=$(grep -oE 'build-tools/[0-9]+\.[0-9]+\.[0-9]+ ' <<< "$list" | sort -t/ -k2 -V | tail -1)
+    [[ -n $platform && -n $build ]] || { echo "artixy-setup-android: no platform or build tools in 'android sdk list --all'" >&2; exit 1; }
+    echo "Installing platform-tools, $platform, $build"
+    "${android[@]}" sdk install platform-tools $platform $build
+else
+    # older command-line tools: sdkmanager, "platforms;android-36"
+    accept_licenses() {
+        # yes exits on SIGPIPE when sdkmanager is done, so ignore its status
+        { yes 2>/dev/null || true; } | "$sdkmanager" --sdk_root="$sdk" --licenses >/dev/null
+    }
+    accept_licenses
+    list=$("$sdkmanager" --sdk_root="$sdk" --list)
+    platform=$(grep -oE 'platforms;android-[0-9]+ ' <<< "$list" | sort -t- -k2 -n | tail -1)
+    build=$(grep -oE 'build-tools;[0-9]+\.[0-9]+\.[0-9]+ ' <<< "$list" | sort -t';' -k2 -V | tail -1)
+    [[ -n $platform && -n $build ]] || { echo "artixy-setup-android: no platform or build tools in sdkmanager --list" >&2; exit 1; }
+    echo "Installing platform-tools, $platform, $build"
+    "$sdkmanager" --sdk_root="$sdk" --install platform-tools $platform $build
+    accept_licenses
+fi
 
 if [[ -x $flutter ]]; then
     args=(--android-sdk "$sdk")

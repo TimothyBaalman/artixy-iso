@@ -2,3 +2,5 @@
 python
 python-pip
 python-pipx
+# pipx needs filelock, which the Artix python-pipx package does not pull in
+python-filelock
