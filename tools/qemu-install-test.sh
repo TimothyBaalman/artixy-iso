@@ -157,7 +157,7 @@ for app in ${apps//,/ }; do
         python) devchecks+=("pacman -Q python-pipx") ;;
         cpp) devchecks+=("pacman -Q clang cmake gdb") ;;
         platformio) devchecks+=("test -x $home/.local/bin/pio") ;;
-        flutter) devchecks+=("pacman -Q android-studio" "test -x $home/.local/share/flutter/bin/flutter") ;;
+        flutter) devchecks+=("pacman -Q android-studio" "test -x $home/.local/share/flutter/bin/flutter" "test -x $home/Android/Sdk/platform-tools/adb") ;;
         docker) devchecks+=("test -e /run/runit/service/docker" "id -nG | grep -q docker") ;;
         virtualbox) devchecks+=("pacman -Q virtualbox virtualbox-host-modules-artix") ;;
         hex) devchecks+=("pacman -Q ghex") ;;

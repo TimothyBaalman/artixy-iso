@@ -87,11 +87,18 @@ It then installs:
   Artix.
 
 - **Flutter** is cloned (stable branch) into `~/.local/share/flutter` and put
-  on `PATH`, and pointed at Android Studio in `/opt/android-studio`. Open
-  Android Studio once to install the Android SDK (into `~/Android/Sdk`, where
-  Flutter finds it), then run `flutter doctor --android-licenses`. Web builds
-  use Brave (`CHROME_EXECUTABLE`). Steps like this are also written to
-  `~/ARTIXY-NEXT-STEPS.txt`.
+  on `PATH`. `artixy-setup-android` then sets up the Android SDK in
+  `~/Android/Sdk` with no clicks in Android Studio: it downloads Google's
+  command-line tools, installs platform-tools and the newest stable Android
+  platform and build tools, accepts the SDK licenses, and runs
+  `flutter config` to point Flutter at the SDK and at Android Studio
+  (`/opt/android-studio`). Run it again any time for a newer platform. Web
+  builds use Brave (`CHROME_EXECUTABLE`).
+- **PlatformIO** is installed with `pipx install platformio` as the user, with
+  PlatformIO's udev rules, so `pio` works and can flash boards right away.
+- Anything still left for after the first boot (today only rebooting before
+  the first VirtualBox VM, or a download that failed) is printed at the end
+  and written to `~/ARTIXY-NEXT-STEPS.txt`.
 
 The log is saved to `/var/log/artixy-install.log` on the new system, and the
 answers (without passwords) to `/var/log/artixy-install.conf`.
