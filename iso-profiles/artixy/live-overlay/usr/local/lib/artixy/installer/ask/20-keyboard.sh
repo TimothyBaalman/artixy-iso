@@ -6,7 +6,7 @@ declare -A CONSOLE_KEYMAP=(
     [us]=us [us:dvorak]=dvorak [us:colemak]=colemak [gb]=uk [de]=de-latin1
     [fr]=fr-latin1 [es]=es [latam]=la-latin1 [it]=it [pt]=pt-latin1
     [br]=br-abnt2 [nl]=nl [be]=be-latin1 [ch]=de_CH-latin1 [se]=sv-latin1
-    [no]=no-latin1 [dk]=dk-latin1 ["fi"]=fi [pl]=pl [cz]=cz-qwertz [hu]=hu
+    [no]=no-latin1 [dk]=dk-latin1 ["fi"]="fi" [pl]=pl [cz]=cz-qwertz [hu]=hu
     [ru]=ru [ua]=ua [tr]=trq [jp]=jp106
 )
 

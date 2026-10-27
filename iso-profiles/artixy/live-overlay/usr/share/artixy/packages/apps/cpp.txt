@@ -1,0 +1,6 @@
+# gcc and make come with base-devel; this adds the rest of a C/C++ toolchain.
+clang
+lldb
+cmake
+ninja
+gdb

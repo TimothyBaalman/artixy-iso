@@ -5,6 +5,7 @@ install_services() {
         bluetoothd cupsd avahi-daemon ufw power-profiles-daemon zramen)
     header "Enabling services"
     [[ -d $t/etc/runit/sv/thermald ]] && svcs+=(thermald)
+    has apps docker && svcs+=(docker)
     svc_enable "${svcs[@]}"
 
     # firewall: deny incoming, allow outgoing (ufw's defaults)

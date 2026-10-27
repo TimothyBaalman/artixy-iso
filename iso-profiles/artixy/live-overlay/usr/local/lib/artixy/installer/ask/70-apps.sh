@@ -1,4 +1,7 @@
-# Optional apps and editors.
+# Optional editors, dev tools and apps.
+#
+# Already in every install, so not listed: gcc and make (base-devel),
+# Python 3, btop, Nautilus and Alacritty.
 
 # id|label, in the order shown
 APPS=(
@@ -6,6 +9,18 @@ APPS=(
     "code|Code - OSS (VS Code, open source build)"
     "vscodium|VSCodium (AUR)"
     "vscode|Visual Studio Code, Microsoft build (AUR)"
+    "python|Python tools: pip, pipx"
+    "cpp|C/C++ extras: clang, lldb, cmake, ninja, gdb"
+    "platformio|PlatformIO (embedded dev, with udev rules)"
+    "flutter|Flutter with Android Studio (AUR)"
+    "docker|Docker with Compose and Buildx"
+    "virtualbox|VirtualBox"
+    "hex|GHex hex editor"
+    "diskusage|Disk usage: Disk Usage Analyzer, ncdu"
+    "sysmon|GNOME System Monitor"
+    "dolphin|Dolphin file manager"
+    "kitty|kitty terminal"
+    "ghostty|Ghostty terminal"
     "freecad|FreeCAD"
     "kicad|KiCad"
     "obs|OBS Studio"
@@ -35,9 +50,9 @@ ask_apps() {
         if ((AUTO)); then
             CFG[apps]=neovim
         else
-            header "Editors and apps (space to select, enter when done)"
+            header "Editors, dev tools and apps (space to select, enter when done)"
             labels=$(for a in "${APPS[@]}"; do echo "${a#*|}"; done)
-            picked=$(gum choose --no-limit --height 15 --selected "$(app_label neovim)" <<< "$labels") || exit 1
+            picked=$(gum choose --no-limit --height 25 --selected "$(app_label neovim)" <<< "$labels") || exit 1
             CFG[apps]=$(while IFS= read -r l; do app_id "$l"; done <<< "$picked" | paste -sd,)
         fi
     fi

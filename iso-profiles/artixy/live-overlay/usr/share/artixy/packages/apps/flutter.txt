@@ -1,0 +1,9 @@
+# Flutter itself is cloned into ~/.local/share/flutter; Android Studio comes
+# from the AUR. These are what flutter doctor wants for Linux and Android.
+git
+clang
+cmake
+ninja
+pkgconf
+gtk3
+jdk17-openjdk

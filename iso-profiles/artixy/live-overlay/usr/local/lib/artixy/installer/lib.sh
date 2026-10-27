@@ -12,6 +12,7 @@ LOG=${LOG:-/tmp/artixy-install.log}
 declare -A CFG=()
 AUTO=0
 WARNINGS=()
+NOTES=()
 
 # Keys accepted on the command line and in config files.
 CFG_KEYS=(keyboard timezone locale username password hostname disk encrypt
@@ -65,6 +66,9 @@ warn() {
     WARNINGS+=("$*")
     gum style --foreground 214 "warning: $*" >&2
 }
+
+# Something for the user to do after the first boot, shown at the end.
+note() { NOTES+=("$*"); }
 
 die() {
     gum style --foreground 196 --bold "artixy-install: $*" >&2

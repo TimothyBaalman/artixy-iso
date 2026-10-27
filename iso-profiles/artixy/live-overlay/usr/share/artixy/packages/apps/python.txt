@@ -1,0 +1,4 @@
+# Python 3 is already a dependency of the base system; this adds pip and pipx.
+python
+python-pip
+python-pipx

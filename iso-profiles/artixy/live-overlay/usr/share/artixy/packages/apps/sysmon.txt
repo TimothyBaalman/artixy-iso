@@ -1,0 +1,2 @@
+# btop is always installed; this adds the GUI system monitor.
+gnome-system-monitor

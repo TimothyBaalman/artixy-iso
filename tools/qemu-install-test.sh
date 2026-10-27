@@ -2,10 +2,12 @@
 # Install Artixy from the ISO onto a blank QEMU disk with the unattended
 # installer, then boot the disk and check the installed system.
 #
-# Usage: tools/qemu-install-test.sh <iso> <bios|uefi> <hyprland|i3> [encrypt] [outdir]
+# Usage: tools/qemu-install-test.sh <iso> <bios|uefi> <hyprland|i3> [encrypt] [outdir] [apps]
 #
 #   encrypt   yes or no (default no): LUKS2 root, unlocked at boot by typing
 #             the passphrase at the initramfs prompt
+#   apps      the installer's apps= list (default neovim); each app is
+#             checked on the installed system
 #
 # Needs the same tools as qemu-test.sh plus qemu-img. The live system needs
 # network (QEMU's user networking is enough): the install downloads every
@@ -26,6 +28,7 @@ fw=$2
 desktop=$3
 encrypt=${4:-no}
 out=${5:-qemu-out}
+apps=${6:-neovim}
 mkdir -p "$out"
 out=$(realpath "$out")
 
@@ -81,7 +84,7 @@ sleep 0.5
 monitor "sendkey ret"
 sleep 3
 
-type_line "artixy-install --auto disk=/dev/vda username=$user password=$pass desktop=$desktop encrypt=$encrypt reboot=poweroff log=/dev/ttyS0"
+type_line "artixy-install --auto disk=/dev/vda username=$user password=$pass desktop=$desktop encrypt=$encrypt apps=$apps reboot=poweroff log=/dev/ttyS0"
 sleep 30
 shot install-started
 
@@ -145,6 +148,30 @@ type_line "clear; pacman -Q $pkgs && echo PKGS-OK; pacman -Qq | grep -q xlibre &
 sleep 3
 check 'PKGS-OK' packages
 [[ $desktop == i3 ]] && check 'XL.?IBRE-OK' xlibre  # OCR has read "XL IBRE"
+
+# One package or file per picked app that shows it was set up.
+home=/home/$user
+devchecks=()
+for app in ${apps//,/ }; do
+    case $app in
+        python) devchecks+=("pacman -Q python-pipx") ;;
+        cpp) devchecks+=("pacman -Q clang cmake gdb") ;;
+        platformio) devchecks+=("test -x $home/.local/bin/pio") ;;
+        flutter) devchecks+=("pacman -Q android-studio" "test -x $home/.local/share/flutter/bin/flutter") ;;
+        docker) devchecks+=("test -e /run/runit/service/docker" "id -nG | grep -q docker") ;;
+        virtualbox) devchecks+=("pacman -Q virtualbox virtualbox-host-modules-artix") ;;
+        hex) devchecks+=("pacman -Q ghex") ;;
+        diskusage) devchecks+=("pacman -Q baobab ncdu") ;;
+        sysmon) devchecks+=("pacman -Q gnome-system-monitor") ;;
+        dolphin|kitty|ghostty) devchecks+=("pacman -Q $app") ;;
+    esac
+done
+if ((${#devchecks[@]})); then
+    cmd=$(printf '%s && ' "${devchecks[@]}")
+    type_line "clear; ${cmd}echo APPS-OK"
+    sleep 5
+    check 'APPS-OK' apps
+fi
 type_line "clear; sudo sv status /run/runit/service/*"
 sleep 2
 type_line "$pass"

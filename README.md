@@ -49,8 +49,20 @@ opens. **Install Artixy** asks, in order:
 3. username, password, computer name
 4. disk (erased) and whether to encrypt it with LUKS2
 5. desktop: Hyprland, or i3 on XLibre, plus optional Openbox, Fluxbox, xfwm4
-6. editors and apps: Neovim with LazyVim, Code - OSS, VSCodium, Visual Studio
-   Code, FreeCAD, KiCad, OBS, GIMP, Inkscape, Wireshark, LibreOffice
+6. editors, dev tools and apps (all optional):
+   - editors: Neovim with LazyVim, Code - OSS, VSCodium, Visual Studio Code
+   - dev tools: Python tools (pip, pipx), C/C++ extras (clang, lldb, cmake,
+     ninja, gdb), PlatformIO (via pipx, with its udev rules and the `uucp`
+     group for serial ports), Flutter with Android Studio, Docker (Compose,
+     Buildx, service on, user in `docker`), VirtualBox (Artix kernel modules,
+     user in `vboxusers`)
+   - utilities: GHex, Disk Usage Analyzer + ncdu, GNOME System Monitor,
+     Dolphin, kitty, Ghostty (a picked terminal or Dolphin becomes the
+     desktop's default)
+   - apps: FreeCAD, KiCad, OBS, GIMP, Inkscape, Wireshark, LibreOffice
+
+   Always installed, so not in the list: gcc and make (base-devel), Python 3,
+   btop, Nautilus and Alacritty.
 7. a summary to confirm
 
 It then installs:
@@ -70,9 +82,16 @@ It then installs:
 - **XLibre**: for i3 and the other X11 window managers, the installer adds
   `[xlibre-stable]` above `[world]` in the target's `pacman.conf`, trusts its
   key and installs `xlibre-meta` before anything that needs an X server.
-- **AUR**: `yay`, then Brave (the default browser) and VSCodium or Visual
-  Studio Code if picked. An AUR failure only warns, since the AUR is outside
+- **AUR**: `yay`, then Brave (the default browser), and VSCodium, Visual
+  Studio Code or Android Studio if picked. An AUR failure only warns, since the AUR is outside
   Artix.
+
+- **Flutter** is cloned (stable branch) into `~/.local/share/flutter` and put
+  on `PATH`, and pointed at Android Studio in `/opt/android-studio`. Open
+  Android Studio once to install the Android SDK (into `~/Android/Sdk`, where
+  Flutter finds it), then run `flutter doctor --android-licenses`. Web builds
+  use Brave (`CHROME_EXECUTABLE`). Steps like this are also written to
+  `~/ARTIXY-NEXT-STEPS.txt`.
 
 The log is saved to `/var/log/artixy-install.log` on the new system, and the
 answers (without passwords) to `/var/log/artixy-install.conf`.
@@ -135,8 +154,9 @@ CI runs all three modes after every build.
 further: it runs `artixy-install --auto` onto a blank 20 GB disk (with the
 installer's output on the VM's serial port), boots the installed disk, types
 the LUKS passphrase if encrypted, and checks from tty2 that the desktop,
-XLibre (for i3), yay and Brave are installed and the runit services are up.
-CI runs it for i3 on BIOS and for Hyprland on UEFI with LUKS. It needs
+XLibre (for i3), yay, Brave and each picked app are set up and the runit
+services are up. CI runs it for i3 on BIOS and for Hyprland on UEFI with LUKS,
+and between them every dev tool option. It needs
 network for the package downloads and takes 10 to 30 minutes.
 
 ## Notes

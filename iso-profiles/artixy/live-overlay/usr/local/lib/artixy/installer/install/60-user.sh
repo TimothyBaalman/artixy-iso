@@ -6,6 +6,10 @@ install_user() {
     header "Creating user $u"
 
     has apps wireshark && groups+=,wireshark
+    has apps docker && groups+=,docker
+    has apps virtualbox && groups+=,vboxusers
+    # serial ports for flashing boards
+    has apps platformio && groups+=,uucp
     in_target useradd -m -G "$groups" -s /bin/bash "$u"
     printf '%s:%s\n' "$u" "${CFG[password]}" | in_target chpasswd
     # root logins only through sudo
@@ -28,6 +32,15 @@ install_user() {
         dir=$wm
         [[ $wm == hyprland ]] && dir=hypr
         [[ -d $ARTIXY_SHARE/config/$dir ]] && cp -r "$ARTIXY_SHARE/config/$dir" "$home/.config/"
+    done
+    # an extra terminal or file manager picked in the apps list becomes the default
+    local term=alacritty files=nautilus f
+    has apps kitty && term=kitty
+    has apps ghostty && term=ghostty
+    has apps dolphin && files=dolphin
+    for f in "$home/.config/hypr/hyprland.conf" "$home/.config/i3/config"; do
+        [[ -f $f ]] || continue
+        sed -i -E "s/^(\\\$terminal = |set \\\$terminal ).*/\\1$term/; s/^(\\\$files = |set \\\$files ).*/\\1$files/" "$f"
     done
     if [[ ${CFG[desktop]} == hyprland ]]; then
         local layout=${CFG[keyboard]%%:*} variant=
