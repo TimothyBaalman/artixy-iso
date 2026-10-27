@@ -42,6 +42,7 @@ type_line() {
             '&') k=shift-7 ;;
             "'") k=apostrophe ;;
             '^') k=shift-6 ;;
+            '!') k=shift-1 ;;
             [A-Z]) k=shift-${c,,} ;;
             *) k=$c ;;
         esac

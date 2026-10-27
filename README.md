@@ -12,7 +12,7 @@ integration to set up (none, some, or full).
 | 1 | Package list + artools buildiso profile | done |
 | 2 | Bootable live ISO tested in QEMU | done |
 | 3 | gum installer | CI installs i3 (BIOS) and Hyprland (UEFI, LUKS) |
-| 4 | AI tiers | planned |
+| 4 | AI tiers | CI installs the some tier (i3) and the full tier with Ollama (Hyprland) |
 
 ## Layout
 
@@ -63,7 +63,10 @@ opens. **Install Artixy** asks, in order:
 
    Always installed, so not in the list: gcc and make (base-devel), Python 3,
    btop, Nautilus and Alacritty.
-7. a summary to confirm
+7. AI tools: none, some or full (see [AI tiers](#ai-tiers)), and where the
+   models come from: Claude (an Anthropic account), Ollama on this machine,
+   or an Ollama server elsewhere on the network
+8. a summary to confirm
 
 It then installs:
 
@@ -96,12 +99,37 @@ It then installs:
   builds use Brave (`CHROME_EXECUTABLE`).
 - **PlatformIO** is installed with `pipx install platformio` as the user, with
   PlatformIO's udev rules, so `pio` works and can flash boards right away.
+- **AI tools**: see below.
 - Anything still left for after the first boot (today only rebooting before
   the first VirtualBox VM, or a download that failed) is printed at the end
   and written to `~/ARTIXY-NEXT-STEPS.txt`.
 
 The log is saved to `/var/log/artixy-install.log` on the new system, and the
 answers (without passwords) to `/var/log/artixy-install.conf`.
+
+### AI tiers
+
+| Tier | What you get |
+|---|---|
+| none | nothing AI related |
+| some | Claude Code, run through `artixy-sandbox` (bubblewrap): it sees the folder it is started in (read-write), its own settings, and the system read only. The rest of your home folder (SSH keys, browser profile, other projects) is not there, and other processes are hidden. The network works. |
+| full | Claude Code with the same access as you. It still asks before it runs a command or edits a file; `claude --dangerously-skip-permissions` turns that off when you want it to. |
+
+- Claude Code comes from Anthropic's native installer (`~/.local/bin/claude`,
+  updates itself). Run `claude` in a project folder and sign in.
+- **Ollama** (`ai_providers=ollama`) is not in the Artix repos, so its
+  official installer puts it in `/usr/local`, and Artixy adds a runit service
+  (`ollama`, running as the `ollama` user, models in `/var/lib/ollama`).
+  `ollama pull qwen3-coder` downloads a model.
+- **`claude-local`** runs Claude Code against a local model instead of an
+  Anthropic account, through Ollama's Anthropic compatible API. The server and
+  model are in `/etc/artixy/ai.conf` (`AI_ENDPOINT`, `AI_MODEL`), or set them
+  for one run: `AI_MODEL=qwen3-coder:30b claude-local`. An Ollama server on
+  another machine works the same way with `ai_endpoint=http://gpu-box:11434`.
+- With `some`, `artixy-sandbox --ro ~/datasheets` or `--rw PATH` gives the
+  sandbox more folders, `command claude` skips the sandbox for one run, and
+  `command claude update` updates Claude Code (its folder is read only inside
+  the sandbox). `artixy-sandbox` works for any command, not just Claude Code.
 
 ### Unattended installs
 
@@ -157,13 +185,15 @@ Screenshots go to `qemu-out/` and their OCR text is printed. It needs `qemu`,
 `socat`, `tesseract` and `netpbm` (plus OVMF for UEFI, `bsdtar` for serial).
 CI runs all three modes after every build.
 
-`tools/qemu-install-test.sh <iso> <bios|uefi> <hyprland|i3> [encrypt]` goes
-further: it runs `artixy-install --auto` onto a blank 20 GB disk (with the
+`tools/qemu-install-test.sh <iso> <bios|uefi> <hyprland|i3> [encrypt] [outdir] [apps] [extra]`
+goes further: it runs `artixy-install --auto` onto a blank 32 GB disk (with the
 installer's output on the VM's serial port), boots the installed disk, types
 the LUKS passphrase if encrypted, and checks from tty2 that the desktop,
 XLibre (for i3), yay, Brave and each picked app are set up and the runit
-services are up. CI runs it for i3 on BIOS and for Hyprland on UEFI with LUKS,
-and between them every dev tool option. It needs
+services are up, and for the AI tiers that Claude Code is installed and, with
+`some`, that the sandbox can write the project folder but cannot see
+`~/.bashrc`. CI runs it for i3 on BIOS (`ai=some`) and for Hyprland on UEFI
+with LUKS (`ai=full` with Ollama), and between them every dev tool option. It needs
 network for the package downloads and takes 10 to 30 minutes.
 
 ## Notes

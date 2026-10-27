@@ -21,6 +21,12 @@ alias ll='eza -l --git --group-directories-first'
 alias la='eza -la --git --group-directories-first'
 alias lg='lazygit'
 
+# AI tier picked at install: with ai=some, claude runs in artixy-sandbox
+# (bypass it with: command claude)
+if [[ -r /etc/artixy/ai.conf ]] && grep -qx 'AI_TIER=some' /etc/artixy/ai.conf; then
+    claude() { artixy-sandbox claude "$@"; }
+fi
+
 command -v fzf >/dev/null && eval "$(fzf --bash)"
 command -v zoxide >/dev/null && eval "$(zoxide init bash)"
 command -v starship >/dev/null && eval "$(starship init bash)"

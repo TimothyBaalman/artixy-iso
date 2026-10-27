@@ -1,0 +1,3 @@
+# AI tiers (ai=some or full). Claude Code and Ollama come from their
+# own installers, see install/77-ai.sh.
+bubblewrap

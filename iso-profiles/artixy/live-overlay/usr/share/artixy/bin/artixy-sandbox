@@ -1,0 +1,60 @@
+#!/bin/bash
+# Run a command in a bubblewrap sandbox that sees only the current folder.
+#
+# Usage: artixy-sandbox [--rw PATH]... [--ro PATH]... [--] COMMAND [ARGS...]
+#
+# Inside the sandbox:
+#   - the system (/usr, /etc, /opt) is read only
+#   - the home folder is empty, apart from the current folder (read-write),
+#     the AI tools' own settings (~/.claude, ~/.claude.json, read-write),
+#     ~/.local/bin and ~/.local/share/claude, and ~/.gitconfig (read only)
+#   - /tmp is private, other processes are hidden, the network works
+#   --rw/--ro PATH add more folders, e.g. --ro ~/Documents/datasheets
+#
+# Artixy's ai=some tier runs claude through this (see ~/.bashrc).
+# The home folder itself and / are refused as the project folder.
+# ~/.local/bin is read only inside, so Claude Code cannot update itself
+# there; update it outside with: command claude update
+
+set -euo pipefail
+
+extra=()
+while (($#)); do
+    case $1 in
+        --rw) extra+=(--bind "$(realpath "$2")" "$(realpath "$2")"); shift 2 ;;
+        --ro) extra+=(--ro-bind "$(realpath "$2")" "$(realpath "$2")"); shift 2 ;;
+        -h|--help) sed -n '2,/^$/{s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
+        --) shift; break ;;
+        *) break ;;
+    esac
+done
+(($#)) || { echo "usage: artixy-sandbox [--rw PATH] [--ro PATH] COMMAND [ARGS...]" >&2; exit 2; }
+
+project=$(pwd -P)
+if [[ $project == / || $project == "$(realpath "$HOME")" ]]; then
+    echo "artixy-sandbox: start it in a project folder, not in $project" >&2
+    exit 1
+fi
+
+args=(--die-with-parent --unshare-all --share-net
+      --ro-bind /usr /usr --symlink usr/bin /bin --symlink usr/bin /sbin
+      --symlink usr/lib /lib --symlink usr/lib /lib64
+      --ro-bind /etc /etc --ro-bind-try /opt /opt
+      --proc /proc --dev /dev --tmpfs /tmp --tmpfs /run
+      --ro-bind-try /run/user/"$UID"/bus /run/user/"$UID"/bus
+      --tmpfs "$HOME")
+
+# tool state that must persist between runs
+mkdir -p "$HOME/.claude" "$HOME/.local/share/claude"
+[[ -e $HOME/.claude.json ]] || echo '{}' > "$HOME/.claude.json"
+args+=(--bind "$HOME/.claude" "$HOME/.claude"
+       --bind "$HOME/.claude.json" "$HOME/.claude.json"
+       --bind "$HOME/.local/share/claude" "$HOME/.local/share/claude"
+       --ro-bind-try "$HOME/.local/bin" "$HOME/.local/bin"
+       --ro-bind-try "$HOME/.gitconfig" "$HOME/.gitconfig"
+       --bind "$project" "$project" --chdir "$project")
+
+exec bwrap "${args[@]}" "${extra[@]}" \
+    --setenv PATH "$HOME/.local/bin:/usr/local/bin:/usr/bin" \
+    --setenv ARTIXY_SANDBOX 1 \
+    -- "$@"

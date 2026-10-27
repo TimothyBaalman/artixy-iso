@@ -2,12 +2,14 @@
 # Install Artixy from the ISO onto a blank QEMU disk with the unattended
 # installer, then boot the disk and check the installed system.
 #
-# Usage: tools/qemu-install-test.sh <iso> <bios|uefi> <hyprland|i3> [encrypt] [outdir] [apps]
+# Usage: tools/qemu-install-test.sh <iso> <bios|uefi> <hyprland|i3> [encrypt] [outdir] [apps] [extra]
 #
 #   encrypt   yes or no (default no): LUKS2 root, unlocked at boot by typing
 #             the passphrase at the initramfs prompt
 #   apps      the installer's apps= list (default neovim); each app is
 #             checked on the installed system
+#   extra     more key=value installer arguments, space separated, e.g.
+#             "ai=some ai_providers=claude"; the AI tier is checked too
 #
 # Needs the same tools as qemu-test.sh plus qemu-img. The live system needs
 # network (QEMU's user networking is enough): the install downloads every
@@ -29,6 +31,8 @@ desktop=$3
 encrypt=${4:-no}
 out=${5:-qemu-out}
 apps=${6:-neovim}
+extra=${7:-}
+ai=$(sed -n 's/.*\bai=\([a-z]*\).*/\1/p' <<< "$extra")
 mkdir -p "$out"
 out=$(realpath "$out")
 
@@ -40,7 +44,7 @@ disk=$out/$fw-disk.qcow2
 serial=$out/$fw-install-serial.log
 . "$(dirname "$0")/qemu-lib.sh"
 
-qemu-img create -q -f qcow2 "$disk" 20G
+qemu-img create -q -f qcow2 "$disk" 32G
 
 base=(-m 4G -smp 2 -vga std -display none
       -drive "file=$disk,if=virtio,format=qcow2"
@@ -84,7 +88,7 @@ sleep 0.5
 monitor "sendkey ret"
 sleep 3
 
-type_line "artixy-install --auto disk=/dev/vda username=$user password=$pass desktop=$desktop encrypt=$encrypt apps=$apps reboot=poweroff log=/dev/ttyS0"
+type_line "artixy-install --auto disk=/dev/vda username=$user password=$pass desktop=$desktop encrypt=$encrypt apps=$apps $extra reboot=poweroff log=/dev/ttyS0"
 sleep 30
 shot install-started
 
@@ -172,6 +176,22 @@ if ((${#devchecks[@]})); then
     sleep 5
     check 'APPS-OK' apps
 fi
+# AI tier: Claude Code installed; with ai=some, the sandbox sees the project
+# folder and Claude Code but not the rest of the home folder.
+if [[ -n $ai && $ai != none ]]; then
+    aichecks=("test -x $home/.local/bin/claude" "test -x /usr/local/bin/artixy-sandbox")
+    [[ $extra == *ollama* ]] && aichecks+=("test -x /usr/local/bin/ollama" "test -d /etc/runit/sv/ollama")
+    if [[ $ai == some ]]; then
+        aichecks+=("mkdir -p $home/proj" "cd $home/proj"
+            "artixy-sandbox sh -c 'touch made-inside && test ! -e $home/.bashrc && claude --version | grep -q .'"
+            "test -e $home/proj/made-inside" "cd")
+    fi
+    cmd=$(printf '%s && ' "${aichecks[@]}")
+    type_line "clear; ${cmd}echo AI-OK"
+    sleep 8
+    check 'AI-OK' ai
+fi
+
 # The full sv status list can wrap and OCR then splits its columns, so the
 # shell decides: print any service that is not running, then a marker if
 # NetworkManager runs.
