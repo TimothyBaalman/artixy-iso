@@ -6,6 +6,7 @@ base.txt            always installed by basestrap
 desktop.txt         every desktop
 wm/<name>.txt       one per window manager (hyprland, i3, openbox, ...)
 x11.txt             added when any X11 window manager is picked
+ai.txt              added for ai=some or ai=full
 apps/<name>.txt     the optional apps checklist
 aur/<name>.txt      built from the AUR with yay (not checked by
                     tools/check-packages.sh, and a failure there only warns)

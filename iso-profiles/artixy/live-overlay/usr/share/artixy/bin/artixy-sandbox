@@ -1,0 +1,62 @@
+#!/bin/bash
+# Run a command in a bubblewrap sandbox that sees only the current folder.
+#
+# Usage: artixy-sandbox [--rw PATH]... [--ro PATH]... [--] COMMAND [ARGS...]
+#
+# Inside the sandbox:
+#   - the system (/usr, /etc, /opt) is read only
+#   - the home folder is empty, apart from the current folder (read-write),
+#     the AI tools' own settings and state (~/.claude, ~/.claude.json,
+#     ~/.local/share/claude, and opencode's folders, read-write), and their
+#     programs (~/.local/bin, ~/.opencode) and ~/.gitconfig (read only)
+#   - /tmp is private, other processes are hidden, the network works
+#   --rw/--ro PATH add more folders, e.g. --ro ~/Documents/datasheets
+#
+# Artixy's ai=some tier runs claude and opencode through this (see ~/.bashrc).
+# The home folder itself and / are refused as the project folder.
+# ~/.local/bin is read only inside, so Claude Code cannot update itself
+# there; update it outside with: command claude update
+
+set -euo pipefail
+
+extra=()
+while (($#)); do
+    case $1 in
+        --rw) extra+=(--bind "$(realpath "$2")" "$(realpath "$2")"); shift 2 ;;
+        --ro) extra+=(--ro-bind "$(realpath "$2")" "$(realpath "$2")"); shift 2 ;;
+        -h|--help) sed -n '2,/^$/{s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
+        --) shift; break ;;
+        *) break ;;
+    esac
+done
+(($#)) || { echo "usage: artixy-sandbox [--rw PATH] [--ro PATH] COMMAND [ARGS...]" >&2; exit 2; }
+
+project=$(pwd -P)
+if [[ $project == / || $project == "$(realpath "$HOME")" ]]; then
+    echo "artixy-sandbox: start it in a project folder, not in $project" >&2
+    exit 1
+fi
+
+args=(--die-with-parent --unshare-all --share-net
+      --ro-bind /usr /usr --symlink usr/bin /bin --symlink usr/bin /sbin
+      --symlink usr/lib /lib --symlink usr/lib /lib64
+      --ro-bind /etc /etc --ro-bind-try /opt /opt
+      --proc /proc --dev /dev --tmpfs /tmp --tmpfs /run
+      --ro-bind-try /run/user/"$UID"/bus /run/user/"$UID"/bus
+      --tmpfs "$HOME")
+
+# Tool state that persists between runs; the installer creates it for the
+# tools it installs, and anything missing is skipped.
+for p in .claude .claude.json .local/share/claude .config/opencode \
+         .local/share/opencode .local/state/opencode .cache/opencode; do
+    args+=(--bind-try "$HOME/$p" "$HOME/$p")
+done
+for p in .local/bin .opencode .gitconfig; do
+    args+=(--ro-bind-try "$HOME/$p" "$HOME/$p")
+done
+args+=(--bind "$project" "$project" --chdir "$project")
+
+exec bwrap "${args[@]}" "${extra[@]}" \
+    --setenv PATH "$HOME/.local/bin:$HOME/.opencode/bin:/usr/local/bin:/usr/bin" \
+    --setenv ARTIXY_SANDBOX 1 \
+    -- "$@"

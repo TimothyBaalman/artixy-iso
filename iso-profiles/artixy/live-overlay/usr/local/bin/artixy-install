@@ -17,9 +17,16 @@
 #   encrypt=no           yes for LUKS2; luks_password= defaults to password
 #   desktop=hyprland     or i3 (on XLibre)
 #   extra_wms=           comma list: openbox,fluxbox,xfwm4
-#   apps=neovim          comma list: neovim,code,vscodium,vscode,freecad,
-#                        kicad,obs,gimp,inkscape,wireshark,libreoffice
+#   apps=neovim          comma list of ids from ask/70-apps.sh: neovim,code,
+#                        python,cpp,platformio,flutter,docker,dolphin,...
 #   aur=yes              no skips yay, Brave and the AUR apps
+#   ai=none              some: coding agents in a bubblewrap sandbox that
+#                        sees only the project folder; full: unsandboxed
+#   ai_tools=claude-code comma list: claude-code,opencode,odysseus
+#   ai_providers=claude  comma list: claude,ollama (Ollama on this machine)
+#   ai_endpoint=         Ollama server for local models (default: this
+#                        machine's, when ollama is picked)
+#   ai_model=qwen3-coder local model used by claude-local
 #   reboot=              yes, poweroff, or no (asked when not --auto)
 #   log=                 also copy the install output here (e.g. /dev/ttyS0)
 #
@@ -38,8 +45,8 @@ for f in /usr/local/lib/artixy/installer/{ask,install}/*.sh; do
     . "$f"
 done
 
-ASK_STEPS=(network keyboard locale user disk desktop apps confirm)
-INSTALL_STEPS=(disk base system xlibre packages user aur editor_config devtools boot services)
+ASK_STEPS=(network keyboard locale user disk desktop apps ai confirm)
+INSTALL_STEPS=(disk base system xlibre packages user aur editor_config devtools ai boot services)
 
 banner() {
     gum style --border rounded --padding "1 3" --margin 1 --border-foreground 212 \

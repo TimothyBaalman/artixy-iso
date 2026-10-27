@@ -1,0 +1,26 @@
+#!/bin/bash
+# Claude Code with a local model from Ollama (or another server with an
+# Anthropic compatible API), instead of an Anthropic account.
+#
+# Usage: claude-local [CLAUDE ARGS...]
+#
+# The server and model come from /etc/artixy/ai.conf (AI_ENDPOINT,
+# AI_MODEL); set them in the environment to override, e.g.
+#   AI_MODEL=qwen3-coder:30b claude-local
+# With AI_TIER=some, it runs in artixy-sandbox like claude does.
+
+set -euo pipefail
+# the environment wins over the config file
+endpoint=${AI_ENDPOINT:-} model=${AI_MODEL:-} tier=${AI_TIER:-}
+if [[ -r /etc/artixy/ai.conf ]]; then . /etc/artixy/ai.conf; fi
+AI_ENDPOINT=${endpoint:-${AI_ENDPOINT:-http://localhost:11434}}
+AI_MODEL=${model:-${AI_MODEL:-qwen3-coder}}
+AI_TIER=${tier:-${AI_TIER:-full}}
+
+export ANTHROPIC_BASE_URL=$AI_ENDPOINT ANTHROPIC_AUTH_TOKEN=ollama ANTHROPIC_API_KEY=
+export ANTHROPIC_MODEL=$AI_MODEL ANTHROPIC_DEFAULT_HAIKU_MODEL=$AI_MODEL ANTHROPIC_SMALL_FAST_MODEL=$AI_MODEL
+
+if [[ $AI_TIER == some && -z ${ARTIXY_SANDBOX:-} ]]; then
+    exec artixy-sandbox claude "$@"
+fi
+exec claude "$@"

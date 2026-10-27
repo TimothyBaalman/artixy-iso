@@ -8,6 +8,7 @@ ask_confirm() {
         "Disk        ${CFG[disk]} (erased)$([[ ${CFG[encrypt]} == yes ]] && echo ', encrypted')" \
         "Desktop     ${CFG[desktop]}${CFG[extra_wms]:+ + ${CFG[extra_wms]//,/, }}" \
         "Apps        ${apps:-none}" \
+        "AI          $(ai_summary)" \
         "Browser     $([[ ${CFG[aur]} == yes ]] && echo 'Brave (AUR)' || echo 'none (aur=no)')" \
         "User        ${CFG[username]}@${CFG[hostname]}" \
         "Keyboard    ${CFG[keyboard]}" \

@@ -6,6 +6,7 @@ install_services() {
     header "Enabling services"
     [[ -d $t/etc/runit/sv/thermald ]] && svcs+=(thermald)
     has apps docker && svcs+=(docker)
+    [[ -d $t/etc/runit/sv/ollama ]] && svcs+=(ollama)
     svc_enable "${svcs[@]}"
 
     # firewall: deny incoming, allow outgoing (ufw's defaults)
