@@ -36,6 +36,8 @@ pkgbase_of() {
         tree-sitter-cli) echo tree-sitter ;;
         ttf-*-nerd) echo nerd-fonts ;;
         zramen-*) echo zramen ;;
+        clang|lldb) echo llvm ;;
+        jdk[0-9]*-openjdk) n=${1#jdk}; echo "java${n%-openjdk}-openjdk" ;;
         *) echo "$1" ;;
     esac
 }

@@ -40,6 +40,8 @@ type_line() {
             ';') k=semicolon ;;
             '|') k=shift-backslash ;;
             '&') k=shift-7 ;;
+            "'") k=apostrophe ;;
+            '^') k=shift-6 ;;
             [A-Z]) k=shift-${c,,} ;;
             *) k=$c ;;
         esac

@@ -97,8 +97,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { desktop: i3, firmware: bios, encrypt: "no" }
-          - { desktop: hyprland, firmware: uefi, encrypt: "yes" }
+          - desktop: i3
+            firmware: bios
+            encrypt: "no"
+            apps: neovim,python,cpp,docker,hex,diskusage,sysmon,kitty
+          - desktop: hyprland
+            firmware: uefi
+            encrypt: "yes"
+            apps: neovim,platformio,flutter,virtualbox,dolphin,ghostty
     steps:
       - uses: actions/checkout@v4
       - name: Enable KVM
@@ -115,7 +121,7 @@ jobs:
           name: artixy-iso
           path: iso
       - name: Install with artixy-install --auto, boot the disk, check it
-        run: tools/qemu-install-test.sh iso/*.iso ${{ matrix.firmware }} ${{ matrix.desktop }} ${{ matrix.encrypt }} qemu-out
+        run: tools/qemu-install-test.sh iso/*.iso ${{ matrix.firmware }} ${{ matrix.desktop }} ${{ matrix.encrypt }} qemu-out ${{ matrix.apps }}
       - name: Upload screenshots
         if: always()
         uses: actions/upload-artifact@v4

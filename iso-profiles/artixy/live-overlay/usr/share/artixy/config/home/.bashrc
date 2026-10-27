@@ -1,3 +1,13 @@
+# pipx installs (PlatformIO) and Flutter, if the installer set them up
+export PATH="$HOME/.local/bin:$PATH"
+[[ -d $HOME/.local/share/flutter/bin ]] && export PATH="$HOME/.local/share/flutter/bin:$PATH"
+if [[ -d $HOME/Android/Sdk ]]; then
+    export ANDROID_HOME=$HOME/Android/Sdk
+    export PATH="$ANDROID_HOME/platform-tools:$PATH"
+fi
+# Flutter web builds use Brave as their Chrome
+command -v brave >/dev/null && export CHROME_EXECUTABLE=brave
+
 [[ $- != *i* ]] && return
 
 [[ -r /usr/share/bash-completion/bash_completion ]] && . /usr/share/bash-completion/bash_completion

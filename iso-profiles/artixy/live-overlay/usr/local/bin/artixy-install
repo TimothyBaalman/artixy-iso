@@ -39,7 +39,7 @@ for f in /usr/local/lib/artixy/installer/{ask,install}/*.sh; do
 done
 
 ASK_STEPS=(network keyboard locale user disk desktop apps confirm)
-INSTALL_STEPS=(disk base system xlibre packages user aur editor_config boot services)
+INSTALL_STEPS=(disk base system xlibre packages user aur editor_config devtools boot services)
 
 banner() {
     gum style --border rounded --padding "1 3" --margin 1 --border-foreground 212 \
@@ -84,6 +84,11 @@ finish() {
     if ((${#WARNINGS[@]})); then
         info "Finished with warnings:"
         printf '  - %s\n' "${WARNINGS[@]}"
+    fi
+    if ((${#NOTES[@]})); then
+        info "After the first boot:"
+        printf '  - %s\n' "${NOTES[@]}"
+        printf '%s\n' "${NOTES[@]}" > "$t/home/${CFG[username]}/ARTIXY-NEXT-STEPS.txt"
     fi
     info "Log in as ${CFG[username]} on tty1 to start ${CFG[desktop]}."
     echo "ARTIXY-INSTALL-OK"

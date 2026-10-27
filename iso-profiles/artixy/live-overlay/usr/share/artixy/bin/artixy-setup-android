@@ -1,0 +1,76 @@
+#!/bin/bash
+# Set up the Android SDK for Flutter, with no clicks in Android Studio:
+# command-line tools, platform tools, the newest Android platform and build
+# tools, all SDK licenses accepted, and Flutter pointed at the SDK and at
+# Android Studio. The installer runs it for the Flutter option; it is safe to
+# run again (for example to pick up a newer Android platform).
+#
+# Usage: artixy-setup-android
+# Env:   ANDROID_HOME (default ~/Android/Sdk, where Android Studio looks too)
+
+set -euo pipefail
+
+sdk=${ANDROID_HOME:-$HOME/Android/Sdk}
+repo=https://dl.google.com/android/repository
+flutter=$(command -v flutter || echo "$HOME/.local/share/flutter/bin/flutter")
+studio=/opt/android-studio
+
+for jdk in /usr/lib/jvm/java-17-openjdk "$studio/jbr" /usr/lib/jvm/default; do
+    if [[ -x $jdk/bin/java ]]; then
+        export JAVA_HOME=$jdk
+        break
+    fi
+done
+[[ -n ${JAVA_HOME:-} ]] || { echo "artixy-setup-android: no JDK found (install jdk17-openjdk)" >&2; exit 1; }
+
+sdkmanager=$sdk/cmdline-tools/latest/bin/sdkmanager
+if [[ ! -x $sdkmanager ]]; then
+    echo "Downloading the Android command-line tools"
+    # Newest build listed in Google's repository index; the pinned one is a
+    # fallback if the index format changes.
+    zip=$(curl -fsSL "$repo/repository2-3.xml" | grep -o 'commandlinetools-linux-[0-9]*_latest\.zip' | sort -V | tail -1 || true)
+    zip=${zip:-commandlinetools-linux-13114758_latest.zip}
+    tmp=$(mktemp -d)
+    trap 'rm -rf "$tmp"' EXIT
+    curl -fL --retry 3 -o "$tmp/tools.zip" "$repo/$zip"
+    unzip -q "$tmp/tools.zip" -d "$tmp"
+    mkdir -p "$sdk/cmdline-tools"
+    rm -rf "$sdk/cmdline-tools/latest"
+    mv "$tmp/cmdline-tools" "$sdk/cmdline-tools/latest"
+fi
+
+tools=$sdk/cmdline-tools/latest/bin
+if [[ -x $tools/android ]]; then
+    # Android CLI, which replaced sdkmanager in 2026. Using it accepts the SDK
+    # terms; package paths use "/" ("platforms/android-36").
+    android=("$tools/android" --sdk="$sdk")
+    "${android[@]}" --no-metrics --version >/dev/null 2>&1 && android+=(--no-metrics)
+    list=$("${android[@]}" sdk list --all)
+    platform=$(grep -oE 'platforms/android-[0-9]+ ' <<< "$list" | sort -t- -k2 -n | tail -1)
+    build=$(grep -oE 'build-tools/[0-9]+\.[0-9]+\.[0-9]+ ' <<< "$list" | sort -t/ -k2 -V | tail -1)
+    [[ -n $platform && -n $build ]] || { echo "artixy-setup-android: no platform or build tools in 'android sdk list --all'" >&2; exit 1; }
+    echo "Installing platform-tools, $platform, $build"
+    "${android[@]}" sdk install platform-tools $platform $build
+else
+    # older command-line tools: sdkmanager, "platforms;android-36"
+    accept_licenses() {
+        # yes exits on SIGPIPE when sdkmanager is done, so ignore its status
+        { yes 2>/dev/null || true; } | "$sdkmanager" --sdk_root="$sdk" --licenses >/dev/null
+    }
+    accept_licenses
+    list=$("$sdkmanager" --sdk_root="$sdk" --list)
+    platform=$(grep -oE 'platforms;android-[0-9]+ ' <<< "$list" | sort -t- -k2 -n | tail -1)
+    build=$(grep -oE 'build-tools;[0-9]+\.[0-9]+\.[0-9]+ ' <<< "$list" | sort -t';' -k2 -V | tail -1)
+    [[ -n $platform && -n $build ]] || { echo "artixy-setup-android: no platform or build tools in sdkmanager --list" >&2; exit 1; }
+    echo "Installing platform-tools, $platform, $build"
+    "$sdkmanager" --sdk_root="$sdk" --install platform-tools $platform $build
+    accept_licenses
+fi
+
+if [[ -x $flutter ]]; then
+    args=(--android-sdk "$sdk")
+    [[ -d $studio ]] && args+=(--android-studio-dir "$studio")
+    "$flutter" config "${args[@]}"
+    "$flutter" doctor || true
+fi
+echo "Android SDK ready in $sdk"

@@ -1,0 +1,3 @@
+# GUI (Disk Usage Analyzer) and terminal (ncdu) disk usage viewers.
+baobab
+ncdu

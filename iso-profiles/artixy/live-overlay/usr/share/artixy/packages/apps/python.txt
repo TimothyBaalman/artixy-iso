@@ -1,0 +1,6 @@
+# Python 3 is already a dependency of the base system; this adds pip and pipx.
+python
+python-pip
+python-pipx
+# pipx needs filelock, which the Artix python-pipx package does not pull in
+python-filelock
