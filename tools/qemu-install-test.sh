@@ -172,11 +172,14 @@ if ((${#devchecks[@]})); then
     sleep 5
     check 'APPS-OK' apps
 fi
-type_line "clear; sudo sv status /run/runit/service/*"
+# The full sv status list can wrap and OCR then splits its columns, so the
+# shell decides: print any service that is not running, then a marker if
+# NetworkManager runs.
+type_line "clear; sudo sv status /run/runit/service/* | grep -v '^run: '; sudo sv status NetworkManager | grep -q '^run: ' && echo SVC-OK"
 sleep 2
 type_line "$pass"
 sleep 3
-check 'run: .*Net.orkManager' services
+check 'SVC-OK' services
 
 # Best effort: log in on tty1 to start the desktop and keep a screenshot.
 monitor "sendkey ctrl-alt-f1"
